@@ -7,6 +7,20 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ## [0.1.2] - 2026-04-13
 
 ### Added
+- Theme domain (static templates + dynamic matugen generation) with CLI + API endpoints.
+- Theme asset templates packaged under `/usr/share/crawl/themes`.
+- PKGBUILD install/update/uninstall helper scripts and `crawl update` CLI command.
+
+### Changed
+- PKGBUILD now installs theme templates and includes updated archive checksum.
+- Theme configuration defaults expanded (assets_dirs, writers).
+
+### Documentation
+- Added theme config and CLI usage to README.
+
+## [0.1.1] - 2026-04-12
+
+### Added
 - Implemented sysmon `--watch` in the CLI by consuming the SSE event stream.
 - Wired sysmon and brightness HTTP endpoints in the daemon.
 
