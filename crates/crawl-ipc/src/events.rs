@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
+use crate::theme::{ThemeState, Variant};
 use crate::types::*;
+use serde::{Deserialize, Serialize};
 
 /// All events broadcast over the SSE `/events` stream.
 /// Quickshell and CLI --watch consumers filter by domain.
@@ -28,6 +29,8 @@ pub enum CrawlEvent {
     Disk(DiskEvent),
     // Audio
     Audio(AudioEvent),
+    // Theme
+    Theme(ThemeEvent),
     // Daemon lifecycle
     Daemon(DaemonEvent),
 }
@@ -91,18 +94,38 @@ pub enum BrightnessEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum ProcEvent {
-    Spawned { pid: u32, name: String },
-    Exited { pid: u32, name: String, exit_code: Option<i32> },
+    Spawned {
+        pid: u32,
+        name: String,
+    },
+    Exited {
+        pid: u32,
+        name: String,
+        exit_code: Option<i32>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum MediaEvent {
-    PlayerAppeared { player: MediaPlayer },
-    PlayerVanished { bus_name: String },
-    TrackChanged { bus_name: String, player: MediaPlayer },
-    PlaybackChanged { bus_name: String, status: PlaybackStatus },
-    VolumeChanged { bus_name: String, volume: f64 },
+    PlayerAppeared {
+        player: MediaPlayer,
+    },
+    PlayerVanished {
+        bus_name: String,
+    },
+    TrackChanged {
+        bus_name: String,
+        player: MediaPlayer,
+    },
+    PlaybackChanged {
+        bus_name: String,
+        status: PlaybackStatus,
+    },
+    VolumeChanged {
+        bus_name: String,
+        volume: f64,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -141,4 +164,16 @@ pub enum DaemonEvent {
     Started,
     Stopping,
     DomainError { domain: String, message: String },
+}
+
+// ── Theme event types ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "event", rename_all = "snake_case")]
+pub enum ThemeEvent {
+    PaletteChanged { state: ThemeState },
+    WallpaperChanged { path: String },
+    Generating { wallpaper: String },
+    Error { reason: String },
+    VariantChanged { variant: Variant },
 }

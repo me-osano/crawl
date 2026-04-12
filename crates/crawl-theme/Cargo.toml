@@ -1,0 +1,20 @@
+[package]
+name = "crawl-theme"
+description = "Theme management for crawl — predefined palettes and matugen dynamic theming"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+crawl-ipc    = { workspace = true }
+tokio        = { workspace = true }
+serde        = { workspace = true }
+serde_json   = { workspace = true }
+thiserror    = { workspace = true }
+tracing      = { workspace = true }
+anyhow       = { workspace = true }
+toml         = "0.8"
+notify       = { version = "6", features = ["macos_kqueue"] }
+dirs         = "5"
+futures-util = { workspace = true }

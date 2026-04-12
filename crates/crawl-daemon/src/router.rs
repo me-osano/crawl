@@ -13,6 +13,8 @@ use crawl_ipc::{
     events::BrightnessEvent,
 };
 use crate::{sse, state::AppState};
+use crawl_ipc::events::ThemeEvent;
+use crawl_theme::{ThemeState, Variant, ThemeSource};
 
 pub fn build(state: AppState) -> Router {
     Router::new()
@@ -84,6 +86,14 @@ pub fn build(state: AppState) -> Router {
         .route("/audio/sources", get(audio_sources))
         .route("/audio/volume",  post(audio_volume))
         .route("/audio/mute",    post(audio_mute))
+
+        // ── Theme ────────────────────────────────────────────────────────────
+        .route("/theme/status",     get(theme_status))
+        .route("/theme/set",        post(theme_set))
+        .route("/theme/wallpaper",  post(theme_wallpaper))
+        .route("/theme/variant",    post(theme_variant))
+        .route("/theme/regenerate", post(theme_regenerate))
+        .route("/theme/list",       get(theme_list))
 
         .with_state(state)
 }
@@ -334,4 +344,134 @@ async fn audio_volume(State(_s): State<AppState>) -> impl IntoResponse {
 }
 async fn audio_mute(State(_s): State<AppState>) -> impl IntoResponse {
     not_implemented("audio")
+}
+
+// ── Theme handlers ────────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct SetThemeBody {
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct SetWallpaperBody {
+    path: String,
+    no_generate: Option<bool>,
+}
+
+#[derive(Deserialize)]
+struct SetVariantBody {
+    variant: String,
+}
+
+async fn theme_status(State(state): State<AppState>) -> Json<crawl_ipc::theme::ThemeState> {
+    let current = state.theme_state.lock().await.clone();
+    Json(to_ipc_theme_state(&current))
+}
+
+async fn theme_set(
+    State(state): State<AppState>,
+    Json(body): Json<SetThemeBody>,
+) -> Result<Json<crawl_ipc::theme::ThemeState>, ApiError> {
+    let new_state = crawl_theme::set_theme(&body.name, &state.config.theme, &state.event_tx)
+        .await
+        .map_err(theme_error)?;
+    *state.theme_state.lock().await = new_state.clone();
+    Ok(Json(to_ipc_theme_state(&new_state)))
+}
+
+async fn theme_wallpaper(
+    State(state): State<AppState>,
+    Json(body): Json<SetWallpaperBody>,
+) -> Result<Json<crawl_ipc::theme::ThemeState>, ApiError> {
+    if body.no_generate.unwrap_or(false) {
+        let path = body.path.clone();
+        crawl_theme::set_wallpaper_path(&path, &state.config.theme)
+            .await
+            .map_err(theme_error)?;
+        let _ = state.event_tx.send(CrawlEvent::Theme(ThemeEvent::WallpaperChanged { path }));
+        let current = state.theme_state.lock().await.clone();
+        return Ok(Json(to_ipc_theme_state(&current)));
+    }
+
+    let new_state = crawl_theme::set_wallpaper(&body.path, &state.config.theme, &state.event_tx)
+        .await
+        .map_err(theme_error)?;
+    *state.theme_state.lock().await = new_state.clone();
+    Ok(Json(to_ipc_theme_state(&new_state)))
+}
+
+async fn theme_variant(
+    State(state): State<AppState>,
+    Json(body): Json<SetVariantBody>,
+) -> Result<Json<crawl_ipc::theme::ThemeState>, ApiError> {
+    let variant = match body.variant.as_str() {
+        "light" => Variant::Light,
+        _ => Variant::Dark,
+    };
+    let current = state.theme_state.lock().await.clone();
+    let new_state = crawl_theme::set_variant(variant, &current, &state.config.theme, &state.event_tx)
+        .await
+        .map_err(theme_error)?;
+    *state.theme_state.lock().await = new_state.clone();
+    Ok(Json(to_ipc_theme_state(&new_state)))
+}
+
+async fn theme_regenerate(State(state): State<AppState>) -> Result<Json<crawl_ipc::theme::ThemeState>, ApiError> {
+    let current = state.theme_state.lock().await.clone();
+    if let ThemeSource::Dynamic { wallpaper } = &current.source {
+        let new_state = crawl_theme::set_wallpaper(wallpaper, &state.config.theme, &state.event_tx)
+            .await
+            .map_err(theme_error)?;
+        *state.theme_state.lock().await = new_state.clone();
+        return Ok(Json(to_ipc_theme_state(&new_state)));
+    }
+
+    Ok(Json(to_ipc_theme_state(&current)))
+}
+
+async fn theme_list(State(state): State<AppState>) -> Json<Value> {
+    let all = crawl_theme::themes::list_all_with_config(&state.config.theme);
+    Json(json!({ "themes": all }))
+}
+
+fn to_ipc_theme_state(state: &ThemeState) -> crawl_ipc::theme::ThemeState {
+    crawl_ipc::theme::ThemeState {
+        source: match &state.source {
+            ThemeSource::Predefined { name } => crawl_ipc::theme::ThemeSource::Predefined { name: name.clone() },
+            ThemeSource::Dynamic { wallpaper } => crawl_ipc::theme::ThemeSource::Dynamic { wallpaper: wallpaper.clone() },
+        },
+        variant: match state.variant {
+            Variant::Dark => crawl_ipc::theme::Variant::Dark,
+            Variant::Light => crawl_ipc::theme::Variant::Light,
+        },
+        palette: crawl_ipc::theme::Palette {
+            base: state.palette.base.clone(),
+            mantle: state.palette.mantle.clone(),
+            crust: state.palette.crust.clone(),
+            surface0: state.palette.surface0.clone(),
+            surface1: state.palette.surface1.clone(),
+            surface2: state.palette.surface2.clone(),
+            text: state.palette.text.clone(),
+            subtext1: state.palette.subtext1.clone(),
+            subtext0: state.palette.subtext0.clone(),
+            primary: state.palette.primary.clone(),
+            secondary: state.palette.secondary.clone(),
+            tertiary: state.palette.tertiary.clone(),
+            error: state.palette.error.clone(),
+            warning: state.palette.warning.clone(),
+            info: state.palette.info.clone(),
+            overlay0: state.palette.overlay0.clone(),
+            overlay1: state.palette.overlay1.clone(),
+            overlay2: state.palette.overlay2.clone(),
+        },
+        wallpaper: state.wallpaper.clone(),
+    }
+}
+
+fn theme_error(err: crawl_theme::ThemeError) -> ApiError {
+    ApiError(
+        StatusCode::BAD_REQUEST,
+        ErrorEnvelope::new("theme", "theme_error", err.to_string()),
+    )
 }

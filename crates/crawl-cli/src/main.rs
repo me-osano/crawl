@@ -51,6 +51,10 @@ enum Commands {
     Audio(cmd::audio::AudioArgs),
     /// Daemon control
     Daemon(cmd::daemon::DaemonArgs),
+    /// Theme management (static + dynamic)
+    Theme(cmd::theme::ThemeArgs),
+    /// Update crawl to the latest release (Arch PKGBUILD)
+    Update(cmd::update::UpdateArgs),
 }
 
 #[tokio::main]
@@ -81,6 +85,8 @@ async fn main() -> Result<()> {
         Commands::Disk(args)             => cmd::disk::run(client, args, json_mode).await?,
         Commands::Audio(args)            => cmd::audio::run(client, args, json_mode).await?,
         Commands::Daemon(args)           => cmd::daemon::run(client, args, json_mode).await?,
+        Commands::Theme(args)            => cmd::theme::run(client, args, json_mode).await?,
+        Commands::Update(args)           => cmd::update::run(client, args, json_mode).await?,
     }
 
     Ok(())

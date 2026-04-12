@@ -1,0 +1,26 @@
+name    = "Nord"
+variant = "dark"
+
+[palette]
+base      = "#2e3440"
+mantle    = "#272c36"
+crust     = "#242933"
+
+surface0  = "#3b4252"
+surface1  = "#434c5e"
+surface2  = "#4c566a"
+
+text      = "#eceff4"
+subtext1  = "#e5e9f0"
+subtext0  = "#d8dee9"
+
+primary   = "#b48ead"
+secondary = "#81a1c1"
+tertiary  = "#a3be8c"
+error     = "#bf616a"
+warning   = "#d08770"
+info      = "#88c0d0"
+
+overlay0  = "#616e88"
+overlay1  = "#677383"
+overlay2  = "#6d7a96"

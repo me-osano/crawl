@@ -56,7 +56,11 @@ pub struct ErrorBody {
 }
 
 impl ErrorEnvelope {
-    pub fn new(domain: impl Into<String>, code: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn new(
+        domain: impl Into<String>,
+        code: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             error: ErrorBody {
                 domain: domain.into(),
@@ -70,21 +74,21 @@ impl ErrorEnvelope {
 impl From<CrawlError> for ErrorEnvelope {
     fn from(e: CrawlError) -> Self {
         let (domain, code) = match &e {
-            CrawlError::Bluetooth(_)    => ("bluetooth",         "bluetooth_error"),
-            CrawlError::Network(_)      => ("network",        "network_error"),
-            CrawlError::Notification(_) => ("notify",     "notification_error"),
-            CrawlError::Clipboard(_)    => ("clipboard",  "clipboard_error"),
-            CrawlError::Sysmon(_)       => ("sysmon",     "sysmon_error"),
-            CrawlError::Brightness(_)   => ("brightness", "brightness_error"),
-            CrawlError::Process(_)      => ("proc",       "process_error"),
-            CrawlError::Media(_)        => ("media",      "media_error"),
-            CrawlError::Power(_)        => ("power",      "power_error"),
-            CrawlError::Disk(_)         => ("disk",       "disk_error"),
-            CrawlError::Audio(_)        => ("audio",      "audio_error"),
-            CrawlError::DBus(_)         => ("dbus",       "dbus_error"),
-            CrawlError::NotFound(_)     => ("crawl",      "not_found"),
-            CrawlError::PermissionDenied(_) => ("crawl",  "permission_denied"),
-            CrawlError::Internal(_)     => ("crawl",      "internal_error"),
+            CrawlError::Bluetooth(_) => ("bluetooth", "bluetooth_error"),
+            CrawlError::Network(_) => ("network", "network_error"),
+            CrawlError::Notification(_) => ("notify", "notification_error"),
+            CrawlError::Clipboard(_) => ("clipboard", "clipboard_error"),
+            CrawlError::Sysmon(_) => ("sysmon", "sysmon_error"),
+            CrawlError::Brightness(_) => ("brightness", "brightness_error"),
+            CrawlError::Process(_) => ("proc", "process_error"),
+            CrawlError::Media(_) => ("media", "media_error"),
+            CrawlError::Power(_) => ("power", "power_error"),
+            CrawlError::Disk(_) => ("disk", "disk_error"),
+            CrawlError::Audio(_) => ("audio", "audio_error"),
+            CrawlError::DBus(_) => ("dbus", "dbus_error"),
+            CrawlError::NotFound(_) => ("crawl", "not_found"),
+            CrawlError::PermissionDenied(_) => ("crawl", "permission_denied"),
+            CrawlError::Internal(_) => ("crawl", "internal_error"),
         };
         Self::new(domain, code, e.to_string())
     }

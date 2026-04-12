@@ -1,0 +1,26 @@
+name    = "Catppuccin Latte"
+variant = "light"
+
+[palette]
+base      = "#eff1f5"
+mantle    = "#e6e9ef"
+crust     = "#dce0e8"
+
+surface0  = "#ccd0da"
+surface1  = "#bcc0cc"
+surface2  = "#acb0be"
+
+text      = "#4c4f69"
+subtext1  = "#5c5f77"
+subtext0  = "#6c6f85"
+
+primary   = "#8839ef"
+secondary = "#1e66f5"
+tertiary  = "#40a02b"
+error     = "#d20f39"
+warning   = "#fe640b"
+info      = "#04a5e5"
+
+overlay0  = "#9ca0b0"
+overlay1  = "#8c8fa1"
+overlay2  = "#7c7f93"

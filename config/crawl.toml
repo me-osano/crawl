@@ -66,3 +66,44 @@ auto_mount     = false  # automatically mount removable devices when they appear
 [audio]
 server   = ""           # PulseAudio server address — empty = default (PULSE_SERVER env)
 app_name = "crawl"      # name reported to PulseAudio
+
+# ── Theme ─────────────────────────────────────────────────────────────────────
+# Add this section to your existing ~/.config/crawl/crawl.toml
+
+[theme]
+# Active theme name — any name from the built-ins list, or a filename stem
+# from ~/.config/crawl/themes/*.toml, or "dynamic" for matugen mode.
+#
+# Built-ins:
+#   catppuccin-mocha  catppuccin-macchiato  catppuccin-frappe  catppuccin-latte
+#   rose-pine         rose-pine-moon        rose-pine-dawn
+#   tokyo-night       tokyo-night-storm
+#   nord
+#   gruvbox-dark      gruvbox-light
+#   dracula
+#   one-dark
+#   kanagawa
+active = "catppuccin-mocha"
+
+# "dark" or "light" — affects matugen output mode and predefined variant selection
+variant = "dark"
+
+# Path crawl watches for wallpaper changes (and writes to when you run
+# `crawl theme --wallpaper=...`). Defaults to $XDG_CONFIG_HOME/crawl/current_wallpaper
+# wallpaper_state_file = ""
+
+# Command to set the wallpaper. {path} is replaced with the wallpaper path.
+# Examples:
+#   swww img {path}
+#   swww img {path} --transition-type fade --transition-duration 1
+#   swaybg -i {path} -m fill
+wallpaper_cmd = "swww img {path} --transition-type fade --transition-duration 0.8"
+
+# Which config files to write on every theme change
+write_gtk     = true   # ~/.config/gtk-{3,4}.0/colors.css
+write_ghostty = true   # ~/.config/ghostty/themes/crawl
+write_shell   = true   # ~/.config/crawl/theme.sh + theme.zsh
+write_json    = true   # ~/.config/crawl/current-palette.json
+
+# Where to search for built-in template themes (TOML files)
+# assets_dirs = ["/usr/share/crawl/themes", "/usr/local/share/crawl/themes", "assets/themes"]

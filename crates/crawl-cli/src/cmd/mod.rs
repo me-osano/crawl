@@ -10,3 +10,5 @@ pub mod notify;
 pub mod power;
 pub mod proc_;
 pub mod sysmon;
+pub mod update;
+pub mod theme;

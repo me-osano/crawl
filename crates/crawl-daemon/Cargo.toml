@@ -23,6 +23,7 @@ crawl-media      = { path = "../crawl-media" }
 crawl-power      = { path = "../crawl-power" }
 crawl-disk       = { path = "../crawl-disk" }
 crawl-audio      = { path = "../crawl-audio" }
+crawl-theme      = { path = "../crawl-theme" }
 
 tokio            = { workspace = true }
 axum             = { workspace = true }

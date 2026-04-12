@@ -1,0 +1,37 @@
+# ~/.config/crawl/themes/crawl-theme.toml
+#
+# Example custom theme file. Drop any .toml file in ~/.config/crawl/themes/
+# and reference it by filename stem in crawl.toml: active = "my-custom-theme"
+#
+# All 18 palette roles must be defined. Values must be #rrggbb hex strings.
+
+name    = "Crawl Theme"
+variant = "dark"
+
+[palette]
+# ── Surfaces ─────────────────────────────────────────────────────────────────
+base      = "#1e1e2e"   # main background
+mantle    = "#181825"   # slightly darker — panels, sidebars
+crust     = "#11111b"   # darkest — window chrome, borders
+
+surface0  = "#313244"   # elevated surface — cards, inputs
+surface1  = "#45475a"   # more elevated — hover states
+surface2  = "#585b70"   # most elevated — pressed/active
+
+# ── Text ─────────────────────────────────────────────────────────────────────
+text      = "#cdd6f4"   # primary text
+subtext1  = "#bac2de"   # secondary text — captions
+subtext0  = "#a6adc8"   # tertiary — placeholders, disabled
+
+# ── Accents ───────────────────────────────────────────────────────────────────
+primary   = "#cba6f7"   # main accent — focus, primary buttons, active states
+secondary = "#89b4fa"   # secondary accent — links, info
+tertiary  = "#a6e3a1"   # positive — success, connected, OK
+error     = "#f38ba8"   # danger — errors, disconnected, critical
+warning   = "#fab387"   # caution — low battery, warnings
+info      = "#89dceb"   # informational — tips, neutral notifications
+
+# ── Overlays ──────────────────────────────────────────────────────────────────
+overlay0  = "#6c7086"   # subtle — separators, inactive borders
+overlay1  = "#7f849c"   # medium — inactive tab text, secondary icons
+overlay2  = "#9399b2"   # stronger — focused input outlines, active borders

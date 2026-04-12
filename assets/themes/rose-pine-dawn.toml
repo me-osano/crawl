@@ -1,0 +1,26 @@
+name    = "Rose Pine Dawn"
+variant = "light"
+
+[palette]
+base      = "#faf4ed"
+mantle    = "#fffaf3"
+crust     = "#f2e9e1"
+
+surface0  = "#f4ede8"
+surface1  = "#e4dfde"
+surface2  = "#d7cfc9"
+
+text      = "#575279"
+subtext1  = "#797593"
+subtext0  = "#9893a5"
+
+primary   = "#907aa9"
+secondary = "#56949f"
+tertiary  = "#286983"
+error     = "#b4637a"
+warning   = "#ea9d34"
+info      = "#d7827e"
+
+overlay0  = "#cecacd"
+overlay1  = "#9893a5"
+overlay2  = "#797593"

@@ -35,7 +35,8 @@ async fn main() -> anyhow::Result<()> {
     let (event_tx, _) = broadcast::channel::<CrawlEvent>(512);
 
     // ── Spawn domain tasks ───────────────────────────────────────────────────
-    let state = AppState::new(cfg.clone(), event_tx.clone());
+    let theme_state = crawl_theme::initial_state(&cfg.theme).await;
+    let state = AppState::new(cfg.clone(), event_tx.clone(), theme_state);
 
     spawn_domains(&state).await;
 
@@ -104,4 +105,5 @@ async fn spawn_domains(state: &AppState) {
     spawn_domain!("power",      power,      crawl_power,      cfg.power);
     spawn_domain!("disk",       disk,       crawl_disk,       cfg.disk);
     spawn_domain!("audio",      audio,      crawl_audio,      cfg.audio);
+    spawn_domain!("theme",      theme,      crawl_theme,      cfg.theme);
 }

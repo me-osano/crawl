@@ -1,0 +1,26 @@
+name    = "Gruvbox Light"
+variant = "light"
+
+[palette]
+base      = "#fbf1c7"
+mantle    = "#f9f5d7"
+crust     = "#f2e5bc"
+
+surface0  = "#ebdbb2"
+surface1  = "#d5c4a1"
+surface2  = "#bdae93"
+
+text      = "#3c3836"
+subtext1  = "#504945"
+subtext0  = "#665c54"
+
+primary   = "#8f3f71"
+secondary = "#076678"
+tertiary  = "#79740e"
+error     = "#cc241d"
+warning   = "#d79921"
+info      = "#427b58"
+
+overlay0  = "#7c6f64"
+overlay1  = "#928374"
+overlay2  = "#a89984"

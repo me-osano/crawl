@@ -1,6 +1,6 @@
 # Maintainer: Enosh <osanoenosh@gmail.com>
 pkgname=crawl
-pkgver=0.1.1
+pkgver=0.1.2
 pkgrel=1
 pkgdesc="System services daemon and CLI — Bluetooth, network, audio, brightness, notifications and more"
 arch=('x86_64' 'aarch64')
@@ -62,6 +62,11 @@ package() {
     # Default config
     install -Dm644 config/crawl.toml \
         "$pkgdir/etc/crawl/crawl.toml"
+
+    # Built-in theme templates
+    install -d "$pkgdir/usr/share/crawl/themes"
+    install -Dm644 assets/themes/*.toml \
+        "$pkgdir/usr/share/crawl/themes/"
 
     # License
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"

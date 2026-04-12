@@ -160,6 +160,51 @@ sudo pacman -S bluez bluez-libs networkmanager udisks2 upower \
                rust pkg-config clang
 ```
 
+### Arch Linux (PKGBUILD) — recommended
+
+Install:
+```bash
+curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/main/pkg/install.sh | bash
+```
+
+Update:
+```bash
+curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/main/pkg/update.sh | bash
+```
+
+Or use the CLI:
+```bash
+crawl update
+```
+
+Check the latest release tag without installing:
+```bash
+crawl update --dry-run
+```
+
+Uninstall:
+```bash
+curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/main/pkg/uninstall.sh | bash
+```
+OR (purge crawl and its files)
+```bash
+curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/main/pkg/uninstall.sh | bash -s -- --purge
+```
+
+Manual PKGBUILD:
+```bash
+git clone https://github.com/me-osano/crawl
+cd crawl/pkg
+makepkg -si
+```
+
+The PKGBUILD installs:
+- `/usr/bin/crawl-daemon` and `/usr/bin/crawl`
+- `/usr/lib/systemd/user/crawl.service`
+- `/usr/lib/udev/rules.d/90-crawl-backlight.rules`
+- `/etc/crawl/crawl.toml`
+- `/usr/share/crawl/themes/*.toml`
+
 ### From source
 
 ```bash
@@ -179,19 +224,6 @@ cp systemd/crawl.service ~/.config/systemd/user/
 mkdir -p ~/.config/crawl
 cp config/crawl.toml ~/.config/crawl/crawl.toml
 ```
-
-### Arch Linux (PKGBUILD)
-
-```bash
-cd pkg
-makepkg -si
-```
-
-The PKGBUILD installs:
-- `/usr/bin/crawl-daemon` and `/usr/bin/crawl`
-- `/usr/lib/systemd/user/crawl.service`
-- `/usr/lib/udev/rules.d/90-crawl-backlight.rules`
-- `/etc/crawl/crawl.toml`
 
 ---
 
@@ -324,6 +356,15 @@ critical_threshold     = 5.0
 [clipboard]
 history_size     = 50
 watch_primary    = false
+
+[theme]
+active = "catppuccin-mocha"   # or "dynamic" for matugen
+variant = "dark"              # "dark" or "light"
+wallpaper_cmd = "swww img {path}"
+write_gtk = true
+write_ghostty = true
+write_shell = true
+write_json = true
 ```
 
 ---
@@ -444,6 +485,19 @@ crawl daemon --restart
 crawl daemon --stop
 ```
 
+### theme
+
+```bash
+crawl theme --status
+crawl theme --list
+crawl theme --set=rose-pine
+crawl theme --wallpaper=~/Pictures/wall.jpg
+crawl theme --wallpaper=~/Pictures/wall.jpg --no-generate
+crawl theme --dark
+crawl theme --light
+crawl theme --regenerate
+```
+
 ---
 
 ## IPC / HTTP API
@@ -484,7 +538,7 @@ All responses are JSON. Errors use the standard envelope:
 #### Health
 ```
 GET  /health
-→ { "status": "ok", "version": "0.1.1" }
+→ { "status": "ok", "version": "0.1.2" }
 ```
 
 #### Bluetooth

@@ -1,0 +1,26 @@
+name    = "Rose Pine"
+variant = "dark"
+
+[palette]
+base      = "#191724"
+mantle    = "#1f1d2e"
+crust     = "#26233a"
+
+surface0  = "#2a2837"
+surface1  = "#393552"
+surface2  = "#44415a"
+
+text      = "#e0def4"
+subtext1  = "#c5c3d4"
+subtext0  = "#908caa"
+
+primary   = "#c4a7e7"
+secondary = "#9ccfd8"
+tertiary  = "#31748f"
+error     = "#eb6f92"
+warning   = "#f6c177"
+info      = "#ebbcba"
+
+overlay0  = "#6e6a86"
+overlay1  = "#907aa9"
+overlay2  = "#524f67"

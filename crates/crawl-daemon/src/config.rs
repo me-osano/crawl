@@ -22,6 +22,7 @@ pub struct Config {
     pub power: crawl_power::Config,
     pub disk: crawl_disk::Config,
     pub audio: crawl_audio::Config,
+    pub theme: crawl_theme::Config,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,6 +73,7 @@ impl Default for Config {
             power: crawl_power::Config::default(),
             disk: crawl_disk::Config::default(),
             audio: crawl_audio::Config::default(),
+            theme: crawl_theme::Config::default(),
         }
     }
 }
