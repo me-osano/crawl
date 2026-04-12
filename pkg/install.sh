@@ -39,4 +39,4 @@ fi
 cd "$PKG_DIR"
 
 echo "==> Building and installing crawl via PKGBUILD"
-makepkg -si "$@"
+makepkg -si --noconfirm "$@"
