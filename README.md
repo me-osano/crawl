@@ -164,12 +164,12 @@ sudo pacman -S bluez bluez-libs networkmanager udisks2 upower \
 
 Install:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/main/pkg/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/master/pkg/install.sh | sh
 ```
 
 Update:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/main/pkg/update.sh | bash
+curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/master/pkg/update.sh | sh
 ```
 
 Or use the CLI:
@@ -184,11 +184,11 @@ crawl update --dry-run
 
 Uninstall:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/main/pkg/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/master/pkg/uninstall.sh | sh
 ```
 OR (purge crawl and its files)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/main/pkg/uninstall.sh | bash -s -- --purge
+curl -fsSL https://raw.githubusercontent.com/me-osano/crawl/master/pkg/uninstall.sh | sh -s -- --purge
 ```
 
 Manual PKGBUILD:
