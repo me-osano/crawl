@@ -63,7 +63,7 @@ pin-project-lite = "0.2"
 crawl-ipc = { path = "crates/crawl-ipc" }
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.94.0"
 authors = ["Enosh"]

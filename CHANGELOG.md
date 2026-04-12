@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
-## [0.1.3] - 2026-04-13
+## [0.1.2] - 2026-04-13
 
 ### Added
 - Theme domain (static templates + dynamic matugen generation) with CLI + API endpoints.
@@ -17,12 +17,6 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ### Documentation
 - Added theme config and CLI usage to README.
-
-## [0.1.2] - 2026-04-13
-
-### Fixed
-- PKGBUILD builds from GitHub tarballs by using the correct source directory.
-- Cargo.lock pins `leb128fmt` to 0.1.0 for resolver compatibility.
 
 ## [0.1.1] - 2026-04-12
 

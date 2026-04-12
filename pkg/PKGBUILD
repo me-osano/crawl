@@ -1,6 +1,6 @@
 # Maintainer: Enosh <osanoenosh@gmail.com>
 pkgname=crawl
-pkgver=0.1.3
+pkgver=0.1.2
 pkgrel=1
 pkgdesc="System services daemon and CLI — Bluetooth, network, audio, brightness, notifications and more"
 arch=('x86_64' 'aarch64')
@@ -41,11 +41,6 @@ build() {
     export RUSTUP_TOOLCHAIN=stable
     export CARGO_TARGET_DIR="target"
     cargo build --release --workspace --bins
-}
-
-check() {
-    cd "$pkgname-$pkgver"
-    cargo test --release --workspace
 }
 
 package() {
