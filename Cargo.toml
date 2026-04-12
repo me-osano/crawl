@@ -1,0 +1,70 @@
+[workspace]
+members = [
+    "crates/crawl-daemon",
+    "crates/crawl-cli",
+    "crates/crawl-ipc",
+    "crates/crawl-bluetooth",
+    "crates/crawl-network",
+    "crates/crawl-notify",
+    "crates/crawl-clipboard",
+    "crates/crawl-sysmon",
+    "crates/crawl-brightness",
+    "crates/crawl-proc",
+    "crates/crawl-media",
+    "crates/crawl-power",
+    "crates/crawl-disk",
+    "crates/crawl-audio",
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Web framework (Unix socket server)
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace"] }
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+color-eyre = "0.6"
+
+# Logging / tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Config
+figment = { version = "0.10", features = ["toml", "env"] }
+
+# D-Bus
+zbus = { version = "4", features = ["tokio"] }
+
+# CLI
+clap = { version = "4", features = ["derive", "color", "env"] }
+
+# Futures
+futures = "0.3"
+futures-util = "0.3"
+async-stream = "0.3"
+tokio-stream = { version = "0.1", features = ["sync"] }
+pin-project-lite = "0.2"
+
+# Shared types (internal)
+crawl-ipc = { path = "crates/crawl-ipc" }
+
+[workspace.package]
+version = "0.1.1"
+edition = "2024"
+rust-version = "1.94.0"
+authors = ["Enosh"]
+license = "MIT"
+repository = "https://github.com/me-osano/crawl"

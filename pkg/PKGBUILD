@@ -1,0 +1,73 @@
+# Maintainer: Enosh <osanoenosh@gmail.com>
+pkgname=crawl
+pkgver=0.1.1
+pkgrel=1
+pkgdesc="System services daemon and CLI — Bluetooth, network, audio, brightness, notifications and more"
+arch=('x86_64' 'aarch64')
+url="https://github.com/me-osano/crawl"
+license=('MIT')
+depends=(
+    'dbus'
+    'bluez'
+    'bluez-libs'
+    'networkmanager'
+    'udisks2'
+    'upower'
+    'pipewire'
+    'pipewire-pulse'
+    'libpulse'
+    'glib2'
+)
+makedepends=(
+    'rust'
+    'cargo'
+    'pkgconf'
+)
+optdepends=(
+    'polkit: for privileged operations without sudo'
+)
+backup=("etc/crawl/crawl.toml")
+install=crawl.install
+source=("$pkgname-$pkgver.tar.gz::https://github.com/me-osano/crawl/archive/v$pkgver.tar.gz"
+        "90-crawl-backlight.rules")
+sha256sums=('3e1abcd26f0216fece902904cf170cf0f1e7a45cc09d59ee10f0ea9dd92171e9'
+            'aa4ddffc58f3b10476c7787c76e1a60e54693a7ecdb0159343c9474301faa84a')
+
+# For local development, comment out source/sha256sums above and use:
+# source=("$pkgname::git+file:///path/to/local/crawl")
+
+build() {
+    cd "$pkgname"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR="target"
+    cargo build --release --workspace --bins
+}
+
+check() {
+    cd "$pkgname"
+    cargo test --release --workspace
+}
+
+package() {
+    cd "$pkgname"
+
+    # Binaries
+    install -Dm755 target/release/crawl-daemon "$pkgdir/usr/bin/crawl-daemon"
+    install -Dm755 target/release/crawl        "$pkgdir/usr/bin/crawl"
+
+    # systemd user service
+    install -Dm644 systemd/crawl.service \
+        "$pkgdir/usr/lib/systemd/user/crawl.service"
+
+    # Default config
+    install -Dm644 config/crawl.toml \
+        "$pkgdir/etc/crawl/crawl.toml"
+
+    # License
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+    # udev rule for brightness (write access to backlight without sudo)
+    install -Dm644 "$srcdir/90-crawl-backlight.rules" \
+        "$pkgdir/usr/lib/udev/rules.d/90-crawl-backlight.rules"
+
+}

@@ -1,0 +1,68 @@
+# crawl configuration file
+# Location: $XDG_CONFIG_HOME/crawl/crawl.toml  (default: ~/.config/crawl/crawl.toml)
+#
+# All values shown are defaults. Uncomment and modify as needed.
+# Environment variable overrides use the format: CRAWL__SECTION__KEY
+# e.g. CRAWL__DAEMON__LOG_LEVEL=debug
+
+# ── Daemon ────────────────────────────────────────────────────────────────────
+[daemon]
+# socket_path = ""          # defaults to $XDG_RUNTIME_DIR/crawl.sock
+log_level = "info"          # trace | debug | info | warn | error
+
+# ── Bluetooth ─────────────────────────────────────────────────────────────────
+[bluetooth]
+auto_power        = false   # power adapter on at daemon start
+scan_timeout_secs = 30      # 0 = no timeout
+
+# ── Network ───────────────────────────────────────────────────────────────────
+[network]
+wifi_scan_on_start = false
+
+# ── Notifications ─────────────────────────────────────────────────────────────
+[notifications]
+replace_daemon     = true   # register org.freedesktop.Notifications (replaces mako/dunst)
+default_timeout_ms = 5000   # used when app sends -1
+max_store          = 200    # max notifications kept in memory
+
+# ── Clipboard ─────────────────────────────────────────────────────────────────
+[clipboard]
+history_size     = 50       # entries to retain
+watch_primary    = false    # also watch primary selection (middle-click paste)
+poll_interval_ms = 500      # how often to check for clipboard changes
+
+# ── System Monitor ────────────────────────────────────────────────────────────
+[sysmon]
+poll_interval_ms        = 1000  # update interval
+cpu_spike_threshold     = 90.0  # percent — emits CpuSpike event
+mem_pressure_threshold  = 85.0  # percent — emits MemPressure event
+
+# ── Brightness ────────────────────────────────────────────────────────────────
+[brightness]
+device      = ""    # auto-detect if empty (prefers intel_backlight, then amdgpu_*)
+min_percent = 1.0
+max_percent = 100.0
+
+# ── Processes ─────────────────────────────────────────────────────────────────
+[processes]
+default_sort = "cpu"    # cpu | mem | pid | name
+default_top  = 30       # number of processes returned by default
+
+# ── Media ─────────────────────────────────────────────────────────────────────
+[media]
+preferred_player = ""   # bus name suffix, e.g. "firefox" — empty = most recent active
+
+# ── Power ─────────────────────────────────────────────────────────────────────
+[power]
+low_battery_threshold  = 20.0   # percent — emits LowBattery event
+critical_threshold     = 5.0    # percent — emits Critical event
+
+# ── Disk ──────────────────────────────────────────────────────────────────────
+[disk]
+removable_only = false  # only watch/report removable devices
+auto_mount     = false  # automatically mount removable devices when they appear
+
+# ── Audio ─────────────────────────────────────────────────────────────────────
+[audio]
+server   = ""           # PulseAudio server address — empty = default (PULSE_SERVER env)
+app_name = "crawl"      # name reported to PulseAudio

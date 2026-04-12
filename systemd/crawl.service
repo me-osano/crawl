@@ -1,0 +1,34 @@
+[Unit]
+Description=crawl system daemon
+Documentation=https://github.com/me-osano/crawl
+# Start after the graphical Wayland session is established
+After=graphical-session.target
+# Required for clipboard (WAYLAND_DISPLAY) and D-Bus session services
+Requires=dbus.socket
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/crawl-daemon
+Restart=on-failure
+RestartSec=3s
+
+# Environment
+Environment=CRAWL_LOG=info
+# Uncomment to override socket path:
+# Environment=CRAWL__DAEMON__SOCKET_PATH=/run/user/%U/crawl.sock
+
+# Logging: journal with identifier
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crawl
+
+# Basic hardening
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%t
+NoNewPrivileges=true
+
+[Install]
+WantedBy=graphical-session.target

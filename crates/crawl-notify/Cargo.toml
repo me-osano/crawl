@@ -1,0 +1,17 @@
+[package]
+name = "crawl-notify"
+description = "org.freedesktop.Notifications D-Bus server — crawl is the notification daemon"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+crawl-ipc    = { workspace = true }
+tokio        = { workspace = true }
+serde        = { workspace = true }
+thiserror    = { workspace = true }
+tracing      = { workspace = true }
+zbus         = { workspace = true }
+futures-util = { workspace = true }
+anyhow       = { workspace = true }

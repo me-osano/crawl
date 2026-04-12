@@ -1,0 +1,42 @@
+[package]
+name = "crawl-daemon"
+description = "crawl system daemon — axum server over Unix socket"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "crawl-daemon"
+path = "src/main.rs"
+
+[dependencies]
+crawl-ipc        = { workspace = true }
+crawl-bluetooth         = { path = "../crawl-bluetooth" }
+crawl-network        = { path = "../crawl-network" }
+crawl-notify     = { path = "../crawl-notify" }
+crawl-clipboard  = { path = "../crawl-clipboard" }
+crawl-sysmon     = { path = "../crawl-sysmon" }
+crawl-brightness = { path = "../crawl-brightness" }
+crawl-proc       = { path = "../crawl-proc" }
+crawl-media      = { path = "../crawl-media" }
+crawl-power      = { path = "../crawl-power" }
+crawl-disk       = { path = "../crawl-disk" }
+crawl-audio      = { path = "../crawl-audio" }
+
+tokio            = { workspace = true }
+axum             = { workspace = true }
+tower            = { workspace = true, features = ["make"] }
+tower-http       = { workspace = true }
+serde            = { workspace = true }
+serde_json       = { workspace = true }
+anyhow           = { workspace = true }
+tracing          = { workspace = true }
+tracing-subscriber = { workspace = true }
+figment          = { workspace = true }
+futures-util     = { workspace = true }
+tokio-stream     = { workspace = true }
+async-stream     = { workspace = true }
+libc             = "0.2"
+hyper-util       = { workspace = true }
+hyper           = { workspace = true }

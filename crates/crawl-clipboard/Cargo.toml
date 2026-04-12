@@ -1,0 +1,16 @@
+[package]
+name = "crawl-clipboard"
+description = "Wayland clipboard access via wl-clipboard-rs"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+crawl-ipc       = { workspace = true }
+tokio           = { workspace = true }
+serde           = { workspace = true }
+thiserror       = { workspace = true }
+tracing         = { workspace = true }
+wl-clipboard-rs = { version = "0.9.3" }
+anyhow          = { workspace = true }
