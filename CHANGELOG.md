@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.1.3] - 2026-04-13
+
+### Added
+- NetworkManager domain now maintains a persistent connection with periodic status refresh and event publishing.
+- Network master power endpoint and status field for global NM enable/disable.
+- Bluetooth pairing features: pair, trust, remove, alias rename, discoverable, pairable, and auth agent.
+- Bluetooth Battery1 support for device battery percentage.
+
+### Changed
+- Network status now reports mode (station/ap/unknown) and a connected AP always wins WiFi dedupe.
+- Network power now uses master networking switch (removed per-wifi power control).
+- Network events now include `mode_changed`.
+
+### Documentation
+- Updated IPC docs with new endpoints and network mode info.
+
 ## [0.1.2] - 2026-04-13
 
 ### Added

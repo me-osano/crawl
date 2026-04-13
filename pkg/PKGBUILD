@@ -30,7 +30,7 @@ backup=("etc/crawl/crawl.toml")
 install=crawl.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/me-osano/crawl/archive/v$pkgver.tar.gz"
         "90-crawl-backlight.rules")
-sha256sums=('ff85c4f7349724c45880a3889bba342c0f6bcc735600d9fd4823277b971eac76'
+sha256sums=('15e7934bbdea07b7298b3e33398b63e00d8dbd24a860d75bb72b9930119d8671'
             'aa4ddffc58f3b10476c7787c76e1a60e54693a7ecdb0159343c9474301faa84a')
 
 # For local development, comment out source/sha256sums above and use:

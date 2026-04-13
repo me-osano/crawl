@@ -81,8 +81,8 @@ crawl-power ───┤                         │
 
 | Domain | Crate | Backend | What it owns |
 |---|---|---|---|
-| Bluetooth | `crawl-bluetooth` | `bluer` / BlueZ D-Bus | Discovery, pair, connect/disconnect, Bluetooth battery |
-| Network | `crawl-network` | `zbus` / NetworkManager | WiFi scan, connect, interface status |
+| Bluetooth | `crawl-bluetooth` | `bluer` / BlueZ D-Bus | Discovery, pair, trust, connect/disconnect, alias, Bluetooth battery |
+| Network | `crawl-network` | `zbus` / NetworkManager | WiFi scan, connect, interface status, master power |
 | Notifications | `crawl-notify` | `zbus` / `org.freedesktop.Notifications` | Full notification daemon (replaces mako/dunst) |
 | Clipboard | `crawl-clipboard` | `wl-clipboard-rs` | Clipboard + primary selection, history |
 | System monitor | `crawl-sysmon` | `sysinfo` | CPU, memory, disk, load averages |
