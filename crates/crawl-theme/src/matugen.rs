@@ -13,6 +13,16 @@ use tracing::{debug, info};
 
 /// Run matugen against a wallpaper and return a resolved Palette.
 pub async fn generate(wallpaper_path: &str, variant: Variant) -> Result<Palette, ThemeError> {
+    generate_with_scheme(wallpaper_path, variant, None).await
+}
+
+/// Run matugen against a wallpaper with an optional scheme
+/// (e.g. tonalspot, vibrant, monochrome, expressive, fidelity, neutral, content).
+pub async fn generate_with_scheme(
+    wallpaper_path: &str,
+    variant: Variant,
+    scheme: Option<&str>,
+) -> Result<Palette, ThemeError> {
     info!("running matugen on: {wallpaper_path}");
 
     // Check matugen is installed
@@ -25,8 +35,12 @@ pub async fn generate(wallpaper_path: &str, variant: Variant) -> Result<Palette,
     }
 
     // Run matugen: outputs a JSON object with color roles per variant
-    let output = tokio::process::Command::new("matugen")
-        .args(["image", wallpaper_path, "--json", "hex"])
+    let mut cmd = tokio::process::Command::new("matugen");
+    cmd.args(["image", wallpaper_path, "--json", "hex"]);
+    if let Some(scheme) = scheme {
+        cmd.args(["--scheme", scheme]);
+    }
+    let output = cmd
         .output()
         .await
         .map_err(|e| ThemeError::MatugenFailed(e.to_string()))?;
@@ -45,7 +59,12 @@ pub async fn generate(wallpaper_path: &str, variant: Variant) -> Result<Palette,
     debug!("matugen output: {}", json);
 
     let variant_key = match variant { Variant::Dark => "dark", Variant::Light => "light" };
-    let colors = &json["colors"][variant_key];
+    let scheme_key = scheme.unwrap_or("default");
+    let colors = if json["colors"].get(scheme_key).is_some() {
+        &json["colors"][scheme_key][variant_key]
+    } else {
+        &json["colors"][variant_key]
+    };
 
     if colors.is_null() {
         return Err(ThemeError::Parse(format!(

@@ -41,11 +41,13 @@ pub fn build(state: AppState) -> Router {
         .route("/bluetooth/pairable",   post(bt_pairable))
 
         // ── Network ──────────────────────────────────────────────────────────
-        .route("/network/status",    get(net_status))
-        .route("/network/wifi",      get(net_wifi_list))
-        .route("/network/connect",   post(net_connect))
-        .route("/network/power",     post(net_power))
-        .route("/network/eth/connect",   post(net_eth_connect))
+        .route("/network/status",      get(net_status))
+        .route("/network/wifi",        get(net_wifi_list))
+        .route("/network/wifi/scan",   post(net_wifi_scan))
+        .route("/network/wifi/connect",post(net_wifi_connect))
+        .route("/network/wifi/disconnect",post(net_wifi_disconnect))
+        .route("/network/power",       post(net_power))
+        .route("/network/eth/connect", post(net_eth_connect))
         .route("/network/eth/disconnect",post(net_eth_disconnect))
 
         // ── Notifications ────────────────────────────────────────────────────
@@ -70,9 +72,10 @@ pub fn build(state: AppState) -> Router {
         .route("/brightness/dec",post(brightness_dec))
 
         // ── Processes ────────────────────────────────────────────────────────
-        .route("/proc/list",     get(proc_list))
-        .route("/proc/find",     get(proc_find))
-        .route("/proc/:pid/kill",post(proc_kill))
+        .route("/proc/list",       get(proc_list))
+        .route("/proc/find",       get(proc_find))
+        .route("/proc/watch/:pid", get(proc_watch))
+        .route("/proc/:pid/kill",  post(proc_kill))
 
         // ── Media (MPRIS) ────────────────────────────────────────────────────
         .route("/media/players", get(media_players))
@@ -100,7 +103,8 @@ pub fn build(state: AppState) -> Router {
 
         // ── Theme ────────────────────────────────────────────────────────────
         .route("/theme/status",     get(theme_status))
-        .route("/theme/set",        post(theme_set))
+        .route("/theme/custom",     post(theme_custom))
+        .route("/theme/dynamic",    post(theme_dynamic))
         .route("/theme/wallpaper",  post(theme_wallpaper))
         .route("/theme/variant",    post(theme_variant))
         .route("/theme/regenerate", post(theme_regenerate))
@@ -184,6 +188,48 @@ fn proc_error(err: crawl_proc::ProcError, pid: u32) -> ApiError {
         crawl_proc::ProcError::SignalFailed(msg) => ApiError(
             StatusCode::INTERNAL_SERVER_ERROR,
             ErrorEnvelope::new("proc", "signal_failed", msg),
+        ),
+    }
+}
+
+fn disk_error(err: crawl_disk::DiskError) -> ApiError {
+    match err {
+        crawl_disk::DiskError::NotFound(path) => ApiError(
+            StatusCode::NOT_FOUND,
+            ErrorEnvelope::new("disk", "not_found", format!("device not found: {path}")),
+        ),
+        crawl_disk::DiskError::MountFailed(msg) => ApiError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorEnvelope::new("disk", "mount_failed", msg),
+        ),
+        crawl_disk::DiskError::UnmountFailed(msg) => ApiError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorEnvelope::new("disk", "unmount_failed", msg),
+        ),
+        crawl_disk::DiskError::DBus(err) => ApiError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorEnvelope::new("disk", "dbus_error", err.to_string()),
+        ),
+    }
+}
+
+fn audio_error(err: crawl_audio::AudioError) -> ApiError {
+    match err {
+        crawl_audio::AudioError::SinkNotFound(name) => ApiError(
+            StatusCode::NOT_FOUND,
+            ErrorEnvelope::new("audio", "sink_not_found", format!("sink not found: {name}")),
+        ),
+        crawl_audio::AudioError::SourceNotFound(name) => ApiError(
+            StatusCode::NOT_FOUND,
+            ErrorEnvelope::new("audio", "source_not_found", format!("source not found: {name}")),
+        ),
+        crawl_audio::AudioError::Connection(msg) => ApiError(
+            StatusCode::SERVICE_UNAVAILABLE,
+            ErrorEnvelope::new("audio", "connection_failed", msg),
+        ),
+        crawl_audio::AudioError::OperationFailed(msg) => ApiError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorEnvelope::new("audio", "operation_failed", msg),
         ),
     }
 }
@@ -343,11 +389,31 @@ async fn net_wifi_list(State(_s): State<AppState>) -> impl IntoResponse {
     }
     // TODO(crawl-network): Consider returning 503 when NetworkManager is unavailable.
 }
-async fn net_connect(
+async fn net_wifi_scan(State(_s): State<AppState>) -> impl IntoResponse {
+    match crawl_network::scan_wifi().await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("network", "network_error", err.to_string()),
+        )
+        .into_response(),
+    }
+}
+async fn net_wifi_connect(
     State(_s): State<AppState>,
     Json(payload): Json<NetConnectBody>,
 ) -> impl IntoResponse {
     match crawl_network::connect_wifi(&payload.ssid, payload.password.as_deref()).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("network", "network_error", err.to_string()),
+        )
+        .into_response(),
+    }
+}
+async fn net_wifi_disconnect(State(_s): State<AppState>) -> impl IntoResponse {
+    match crawl_network::disconnect_wifi().await {
         Ok(()) => Json(json!({ "ok": true })).into_response(),
         Err(err) => ApiError(
             StatusCode::BAD_REQUEST,
@@ -580,6 +646,43 @@ async fn proc_kill(
     }
 }
 
+async fn proc_watch(
+    State(_s): State<AppState>,
+    axum::extract::Path(pid): axum::extract::Path<u32>,
+) -> impl IntoResponse {
+    match crawl_proc::watch_pid(pid).await {
+        Ok(name) => Json(json!({ "pid": pid, "name": name, "exit_code": null })).into_response(),
+        Err(err) => proc_error(err, pid).into_response(),
+    }
+}
+
+// ── Disk handlers ─────────────────────────────────────────────────────────────
+
+async fn disk_list(State(_s): State<AppState>) -> impl IntoResponse {
+    match crawl_disk::list_devices().await {
+        Ok(devices) => Json(devices).into_response(),
+        Err(err) => disk_error(err).into_response(),
+    }
+}
+async fn disk_mount(State(_s): State<AppState>, Json(body): Json<DiskDeviceBody>) -> impl IntoResponse {
+    match crawl_disk::mount(&body.device).await {
+        Ok(mount_path) => Json(json!({"ok": true, "mount_path": mount_path})).into_response(),
+        Err(err) => disk_error(err).into_response(),
+    }
+}
+async fn disk_unmount(State(_s): State<AppState>, Json(body): Json<DiskDeviceBody>) -> impl IntoResponse {
+    match crawl_disk::unmount(&body.device).await {
+        Ok(()) => Json(json!({"ok": true})).into_response(),
+        Err(err) => disk_error(err).into_response(),
+    }
+}
+async fn disk_eject(State(_s): State<AppState>, Json(body): Json<DiskDeviceBody>) -> impl IntoResponse {
+    match crawl_disk::eject(&body.device).await {
+        Ok(()) => Json(json!({"ok": true})).into_response(),
+        Err(err) => disk_error(err).into_response(),
+    }
+}
+
 // ── Media handlers (stubs) ────────────────────────────────────────────────────
 
 async fn media_players(State(_s): State<AppState>) -> impl IntoResponse {
@@ -634,6 +737,11 @@ struct ProcKillBody {
 }
 
 #[derive(Deserialize)]
+struct DiskDeviceBody {
+    device: String,
+}
+
+#[derive(Deserialize)]
 struct NetConnectBody {
     ssid: String,
     password: Option<String>,
@@ -644,34 +752,50 @@ struct NetEthBody {
     interface: Option<String>,
 }
 
-// ── Disk handlers (stubs) ─────────────────────────────────────────────────────
-
-async fn disk_list(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("disk")
-}
-async fn disk_mount(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("disk")
-}
-async fn disk_unmount(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("disk")
-}
-async fn disk_eject(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("disk")
+#[derive(Deserialize)]
+struct AudioVolumeBody {
+    percent: u32,
+    device: Option<String>,
 }
 
-// ── Audio handlers (stubs) ────────────────────────────────────────────────────
+#[derive(Deserialize)]
+struct AudioMuteBody {
+    device: Option<String>,
+}
 
-async fn audio_sinks(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("audio")
+// ── Audio handlers ────────────────────────────────────────────────────────────
+
+async fn audio_sinks(State(state): State<AppState>) -> impl IntoResponse {
+    match crawl_audio::list_sinks(&state.config.audio).await {
+        Ok(sinks) => Json(sinks).into_response(),
+        Err(err) => audio_error(err).into_response(),
+    }
 }
-async fn audio_sources(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("audio")
+async fn audio_sources(State(state): State<AppState>) -> impl IntoResponse {
+    match crawl_audio::list_sources(&state.config.audio).await {
+        Ok(sources) => Json(sources).into_response(),
+        Err(err) => audio_error(err).into_response(),
+    }
 }
-async fn audio_volume(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("audio")
+async fn audio_volume(State(state): State<AppState>, Json(body): Json<AudioVolumeBody>) -> impl IntoResponse {
+    let result = match body.device.as_deref() {
+        Some("input") => crawl_audio::set_input_volume(&state.config.audio, body.percent).await,
+        _ => crawl_audio::set_output_volume(&state.config.audio, body.percent).await,
+    };
+    match result {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => audio_error(err).into_response(),
+    }
 }
-async fn audio_mute(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("audio")
+async fn audio_mute(State(state): State<AppState>, Json(body): Json<AudioMuteBody>) -> impl IntoResponse {
+    let result = match body.device.as_deref() {
+        Some("input") => crawl_audio::toggle_input_mute(&state.config.audio).await,
+        _ => crawl_audio::toggle_output_mute(&state.config.audio).await,
+    };
+    match result {
+        Ok(muted) => Json(json!({ "ok": true, "muted": muted })).into_response(),
+        Err(err) => audio_error(err).into_response(),
+    }
 }
 
 // ── Theme handlers ────────────────────────────────────────────────────────────
@@ -679,6 +803,7 @@ async fn audio_mute(State(_s): State<AppState>) -> impl IntoResponse {
 #[derive(Deserialize)]
 struct SetThemeBody {
     name: String,
+    variant: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -692,16 +817,40 @@ struct SetVariantBody {
     variant: String,
 }
 
+#[derive(Deserialize)]
+struct SetDynamicBody {
+    scheme: Option<String>,
+    variant: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ThemeListParams {
+    variant: Option<String>,
+}
+
 async fn theme_status(State(state): State<AppState>) -> Json<crawl_ipc::theme::ThemeState> {
     let current = state.theme_state.lock().await.clone();
     Json(to_ipc_theme_state(&current))
 }
 
-async fn theme_set(
+async fn theme_custom(
     State(state): State<AppState>,
     Json(body): Json<SetThemeBody>,
 ) -> Result<Json<crawl_ipc::theme::ThemeState>, ApiError> {
-    let new_state = crawl_theme::set_theme(&body.name, &state.config.theme, &state.event_tx)
+    let variant = parse_variant(body.variant.as_deref(), state.theme_state.lock().await.variant);
+    let new_state = crawl_theme::set_theme_with_variant(&body.name, variant, &state.config.theme, &state.event_tx)
+        .await
+        .map_err(theme_error)?;
+    *state.theme_state.lock().await = new_state.clone();
+    Ok(Json(to_ipc_theme_state(&new_state)))
+}
+
+async fn theme_dynamic(
+    State(state): State<AppState>,
+    Json(body): Json<SetDynamicBody>,
+) -> Result<Json<crawl_ipc::theme::ThemeState>, ApiError> {
+    let variant = parse_variant(body.variant.as_deref(), state.theme_state.lock().await.variant);
+    let new_state = crawl_theme::set_dynamic_with_scheme(body.scheme.as_deref(), variant, &state.config.theme, &state.event_tx)
         .await
         .map_err(theme_error)?;
     *state.theme_state.lock().await = new_state.clone();
@@ -758,8 +907,10 @@ async fn theme_regenerate(State(state): State<AppState>) -> Result<Json<crawl_ip
     Ok(Json(to_ipc_theme_state(&current)))
 }
 
-async fn theme_list(State(state): State<AppState>) -> Json<Value> {
-    let all = crawl_theme::themes::list_all_with_config(&state.config.theme);
+async fn theme_list(State(state): State<AppState>, Query(params): Query<ThemeListParams>) -> Json<Value> {
+    let current_variant = state.theme_state.lock().await.variant;
+    let variant = parse_variant(params.variant.as_deref(), current_variant);
+    let all = crawl_theme::themes::list_assets_by_variant(&state.config.theme, variant);
     Json(json!({ "themes": all }))
 }
 
@@ -794,6 +945,14 @@ fn to_ipc_theme_state(state: &ThemeState) -> crawl_ipc::theme::ThemeState {
             overlay2: state.palette.overlay2.clone(),
         },
         wallpaper: state.wallpaper.clone(),
+    }
+}
+
+fn parse_variant(input: Option<&str>, fallback: Variant) -> Variant {
+    match input {
+        Some("dark") => Variant::Dark,
+        Some("light") => Variant::Light,
+        _ => fallback,
     }
 }
 

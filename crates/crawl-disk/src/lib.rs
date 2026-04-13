@@ -75,6 +75,9 @@ trait UDisks2Block {
 
     #[zbus(property)]
     fn hint_ignore(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    fn drive(&self) -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
 }
 
 #[proxy(
@@ -184,6 +187,17 @@ async fn build_block_device(conn: &Connection, path: &str) -> Result<BlockDevice
     let size_bytes = block.size().await.unwrap_or(0);
     let fs_type = block.id_type().await.unwrap_or_default();
 
+    let removable = match block.drive().await {
+        Ok(drive_path) => {
+            let drive = UDisks2DriveProxy::builder(conn).path(drive_path.as_str())?.build().await;
+            match drive {
+                Ok(proxy) => proxy.removable().await.unwrap_or(false),
+                Err(_) => false,
+            }
+        }
+        Err(_) => false,
+    };
+
     Ok(BlockDevice {
         device,
         label:       if label.is_empty() { None } else { Some(label) },
@@ -191,7 +205,7 @@ async fn build_block_device(conn: &Connection, path: &str) -> Result<BlockDevice
         filesystem:  if fs_type.is_empty() { None } else { Some(fs_type) },
         mount_point,
         mounted:     !mount_points.is_empty(),
-        removable:   false,
+        removable,
     })
 }
 
@@ -202,6 +216,27 @@ async fn mount_device(conn: &Connection, path: &str) -> Result<String, DiskError
     let mount_path = fs.mount(Default::default()).await
         .map_err(|e| DiskError::MountFailed(e.to_string()))?;
     Ok(mount_path)
+}
+
+async fn resolve_block_path(conn: &Connection, device: &str) -> Result<String, DiskError> {
+    if device.starts_with("/org/freedesktop/UDisks2/") {
+        return Ok(device.to_string());
+    }
+
+    let manager = UDisks2ManagerProxy::new(conn).await?;
+    let paths = manager.get_block_devices(Default::default()).await?;
+    for path in paths {
+        let block = UDisks2BlockProxy::builder(conn).path(path.as_str())?.build().await?;
+        let device_bytes = block.device().await.unwrap_or_default();
+        let dev = String::from_utf8_lossy(&device_bytes)
+            .trim_end_matches('\0')
+            .to_string();
+        if dev == device {
+            return Ok(path.to_string());
+        }
+    }
+
+    Err(DiskError::NotFound(device.to_string()))
 }
 
 // ── Public query API ──────────────────────────────────────────────────────────
@@ -225,13 +260,15 @@ pub async fn list_devices() -> Result<Vec<BlockDevice>, DiskError> {
 
 pub async fn mount(device_path: &str) -> Result<String, DiskError> {
     let conn = Connection::system().await?;
-    let mount_path = mount_device(&conn, device_path).await?;
+    let block_path = resolve_block_path(&conn, device_path).await?;
+    let mount_path = mount_device(&conn, &block_path).await?;
     Ok(mount_path)
 }
 
 pub async fn unmount(device_path: &str) -> Result<(), DiskError> {
     let conn = Connection::system().await?;
-    let fs = UDisks2FilesystemProxy::builder(&conn).path(device_path)?.build().await?;
+    let block_path = resolve_block_path(&conn, device_path).await?;
+    let fs = UDisks2FilesystemProxy::builder(&conn).path(block_path.as_str())?.build().await?;
     fs.unmount(Default::default())
         .await
         .map_err(|e| DiskError::UnmountFailed(e.to_string()))
@@ -239,7 +276,10 @@ pub async fn unmount(device_path: &str) -> Result<(), DiskError> {
 
 pub async fn eject(drive_path: &str) -> Result<(), DiskError> {
     let conn = Connection::system().await?;
-    let drive = UDisks2DriveProxy::builder(&conn).path(drive_path)?.build().await?;
+    let block_path = resolve_block_path(&conn, drive_path).await?;
+    let block = UDisks2BlockProxy::builder(&conn).path(block_path.as_str())?.build().await?;
+    let drive_path = block.drive().await?;
+    let drive = UDisks2DriveProxy::builder(&conn).path(drive_path.as_str())?.build().await?;
     let result = drive.eject(Default::default()).await;
     result?;
     Ok(())

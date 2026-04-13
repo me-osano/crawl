@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SOURCE_REPO="https://github.com/me-osano/crawl"
+INSTALL_DIR="$HOME/.local/share/crawl"
 DRY_RUN=false
 PASSTHROUGH_ARGS=()
 
@@ -18,11 +19,6 @@ if ! command -v pacman >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v curl >/dev/null 2>&1; then
-    echo "curl not found. Install curl before running this script." >&2
-    exit 1
-fi
-
 if ! command -v git >/dev/null 2>&1; then
     echo "git not found. Install git before running this script." >&2
     exit 1
@@ -33,9 +29,23 @@ if ! command -v makepkg >/dev/null 2>&1; then
     sudo pacman -S --needed base-devel
 fi
 
+if [ -d "$INSTALL_DIR/.git" ]; then
+    echo "==> Updating existing repo in $INSTALL_DIR"
+    if [ -n "$(git -C "$INSTALL_DIR" status --porcelain)" ]; then
+        echo "Install path has uncommitted changes: $INSTALL_DIR" >&2
+        exit 1
+    fi
+elif [ -e "$INSTALL_DIR" ]; then
+    echo "Install path exists but is not a git repo: $INSTALL_DIR" >&2
+    exit 1
+else
+    echo "==> Cloning crawl into $INSTALL_DIR"
+    git clone "$SOURCE_REPO" "$INSTALL_DIR"
+fi
+
 echo "==> Resolving latest crawl release"
-LATEST_URL=$(curl -fsSL -o /dev/null -w "%{url_effective}" "$SOURCE_REPO/releases/latest")
-TAG="${LATEST_URL##*/}"
+git -C "$INSTALL_DIR" fetch --tags --quiet
+TAG=$(git -C "$INSTALL_DIR" tag --list "v*" --sort=-v:refname | head -n 1)
 
 if [ -z "$TAG" ] || [ "$TAG" = "latest" ]; then
     echo "Failed to resolve latest release tag." >&2
@@ -47,14 +57,15 @@ if [ "$DRY_RUN" = true ]; then
     exit 0
 fi
 
-WORK_DIR=$(mktemp -d)
-cleanup() { rm -rf "$WORK_DIR"; }
-trap cleanup EXIT
+CURRENT_REF=$(git -C "$INSTALL_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+if [ -n "$CURRENT_REF" ] && [ "$CURRENT_REF" != "HEAD" ]; then
+    git -C "$INSTALL_DIR" pull --ff-only
+fi
 
-echo "==> Fetching crawl $TAG"
-git clone --depth 1 --branch "$TAG" "$SOURCE_REPO" "$WORK_DIR"
+echo "==> Checking out $TAG"
+git -C "$INSTALL_DIR" checkout -q "$TAG"
 
-PKG_DIR="$WORK_DIR/pkg"
+PKG_DIR="$INSTALL_DIR/pkg"
 if [ ! -d "$PKG_DIR" ]; then
     echo "PKGBUILD directory not found: $PKG_DIR" >&2
     exit 1
@@ -64,3 +75,14 @@ cd "$PKG_DIR"
 
 echo "==> Building and installing crawl via PKGBUILD"
 makepkg -si "${PASSTHROUGH_ARGS[@]}"
+
+if command -v systemctl >/dev/null 2>&1; then
+    echo "==> Reloading crawl user service"
+    systemctl --user daemon-reload >/dev/null 2>&1 || true
+    systemctl --user restart crawl >/dev/null 2>&1 || true
+fi
+
+if [ -n "$CURRENT_REF" ] && [ "$CURRENT_REF" != "HEAD" ]; then
+    echo "==> Restoring repo to $CURRENT_REF"
+    git -C "$INSTALL_DIR" checkout -q "$CURRENT_REF"
+fi

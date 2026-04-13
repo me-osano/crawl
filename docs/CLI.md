@@ -38,23 +38,31 @@ crawl bluetooth --power=off
 ## network
 
 ```bash
-crawl network                           # connectivity status
-crawl network --wifi                    # list nearby WiFi networks
-crawl network --connect=MySSID --password=hunter2
-crawl network --eth                     # list wired interfaces
-crawl network --eth-connect             # connect first wired interface
-crawl network --eth-connect=enp3s0      # connect specific wired interface
-crawl network --eth-disconnect          # disconnect active wired interface
-crawl network --eth-disconnect=enp3s0   # disconnect specific wired interface
+crawl network                                # connectivity status
+crawl network --power=on                     # enable networking
+crawl network --power=off                    # disable networking
+
+crawl network --wifi --list                  # list nearby WiFi networks
+crawl network --wifi --scan                  # trigger WiFi scan
+crawl network --wifi --connect --ssid=MySSID --password=hunter2
+crawl network --wifi --disconnect
+
+crawl network --eth --list                   # list wired interfaces
+crawl network --eth --connect                # connect first wired interface
+crawl network --eth --connect --iface=enp3s0 # connect specific wired interface
+crawl network --eth --disconnect             # disconnect active wired interface
+crawl network --eth --disconnect --iface=enp3s0
 ```
 
 ## audio
 
 ```bash
-crawl audio                         # list sinks with volume
-crawl audio --volume=70             # set default sink to 70%
-crawl audio --mute                  # toggle mute
-crawl audio --sources               # list microphones / sources
+crawl audio                              # list sinks with volume
+crawl audio --output --volume=70         # set output volume to 70%
+crawl audio --output --mute              # toggle output mute
+crawl audio --input --volume=70          # set input volume to 70%
+crawl audio --input --mute               # toggle input mute
+crawl audio --input --list               # list microphones / sources
 ```
 
 ## media
@@ -102,6 +110,7 @@ crawl proc --sort=mem --top=10      # top 10 by memory
 crawl proc --find=firefox           # find by name
 crawl proc --kill=1234              # SIGTERM
 crawl proc --kill=1234 --force      # SIGKILL
+crawl proc --watch=1234             # wait for PID to exit
 ```
 
 ## disk
@@ -125,11 +134,19 @@ crawl daemon --stop
 
 ```bash
 crawl theme --status
-crawl theme --list
-crawl theme --set=rose-pine
+crawl theme --list=dark
+crawl theme --list=light
+crawl theme --dark --set-custom=rose-pine
+crawl theme --light --set-custom=catppuccin-latte
+crawl theme --dark --set-dynamic=tonalspot
 crawl theme --wallpaper=~/Pictures/wall.jpg
 crawl theme --wallpaper=~/Pictures/wall.jpg --no-generate
 crawl theme --dark
 crawl theme --light
 crawl theme --regenerate
 ```
+
+Theme notes:
+- `crawl theme --list` only shows themes from `assets/themes` that match the current variant.
+- Dynamic matugen supports optional schemes via `theme.dynamic_scheme` in `crawl.toml`.
+- Switching `--dark`/`--light` falls back to a default variant theme if the current theme has no matching variant.

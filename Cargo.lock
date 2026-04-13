@@ -551,7 +551,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-audio"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -564,7 +564,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-bluetooth"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "bluer",
@@ -580,7 +580,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-brightness"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -592,7 +592,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-cli"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "clap",
@@ -612,7 +612,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-clipboard"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -625,7 +625,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-daemon"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -660,7 +660,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-disk"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -674,7 +674,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-ipc"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -683,7 +683,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-media"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -697,7 +697,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-network"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -711,7 +711,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-notify"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -725,7 +725,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-power"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -739,7 +739,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-proc"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-sysmon"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",
@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "crawl-theme"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "crawl-ipc",

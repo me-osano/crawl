@@ -100,13 +100,29 @@ pub fn kill_process(pid: u32, force: bool) -> Result<(), ProcError> {
 }
 
 /// Watch a PID and return when it exits. Polls every 500ms.
-pub async fn watch_pid(pid: u32) -> Option<i32> {
+pub async fn watch_pid(pid: u32) -> Result<String, ProcError> {
+    let mut sys = System::new_with_specifics(
+        RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
+    );
+    sys.refresh_processes(ProcessesToUpdate::All);
+    let name = match sys.process(sysinfo::Pid::from_u32(pid)) {
+        Some(proc_) => proc_.name().to_string_lossy().to_string(),
+        None => {
+            return Err(ProcError::NotFound(pid));
+        }
+    };
+
+    if name.is_empty() {
+        return Err(ProcError::NotFound(pid));
+    }
+
     loop {
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        let mut sys = System::new_with_specifics(
-            RefreshKind::new().with_processes(ProcessRefreshKind::everything()),
-        );
         sys.refresh_processes(ProcessesToUpdate::All);
-        sys.process(sysinfo::Pid::from_u32(pid))?;
+        if sys.process(sysinfo::Pid::from_u32(pid)).is_none() {
+            break;
+        }
     }
+
+    Ok(name)
 }

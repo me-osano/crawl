@@ -28,17 +28,32 @@ pub async fn run(_client: crate::client::CrawlClient, args: UpdateArgs, json: bo
 
     let output_res = cmd.output()?;
     let success = output_res.status.success();
+    let stderr = String::from_utf8_lossy(&output_res.stderr).trim().to_string();
     if args.dry_run {
         let tag = String::from_utf8_lossy(&output_res.stdout).trim().to_string();
         let installed = get_installed_version();
+        let tag_missing = tag.is_empty();
         if json {
-            output::print_value(&json!({"ok": success, "tag": tag, "installed": installed}), true);
-        } else if success {
+            output::print_value(
+                &json!({
+                    "ok": success && !tag_missing,
+                    "tag": tag,
+                    "installed": installed,
+                    "error": if success && !tag_missing { None } else { Some(stderr) }
+                }),
+                true,
+            );
+        } else if success && !tag_missing {
             let installed_msg = installed.as_deref().unwrap_or("unknown");
             output::print_ok(&format!("latest release tag: {tag}"));
             output::print_ok(&format!("installed version: {installed_msg}"));
         } else {
-            output::print_err("update check failed");
+            let err_msg = if stderr.is_empty() {
+                "latest release tag not found".to_string()
+            } else {
+                format!("latest release tag not found: {stderr}")
+            };
+            output::print_err(&err_msg);
         }
     } else if json {
         output::print_value(&json!({"ok": success}), true);

@@ -264,6 +264,12 @@ pub async fn list_wifi() -> Result<Vec<WifiNetwork>, NetError> {
     Ok(list)
 }
 
+pub async fn scan_wifi() -> Result<(), NetError> {
+    let conn = Connection::system().await?;
+    let nm = NetworkManagerProxy::new(&conn).await?;
+    request_wifi_scan(&conn, &nm).await
+}
+
 pub async fn connect_wifi(_ssid: &str, _password: Option<&str>) -> Result<(), NetError> {
     let conn = Connection::system().await?;
     let nm = NetworkManagerProxy::new(&conn).await?;
@@ -278,6 +284,24 @@ pub async fn connect_wifi(_ssid: &str, _password: Option<&str>) -> Result<(), Ne
 
     let settings = build_wifi_settings(_ssid, _password);
     nm.add_and_activate_connection(settings, wifi_device, ap_path).await?;
+    Ok(())
+}
+
+pub async fn disconnect_wifi() -> Result<(), NetError> {
+    let conn = Connection::system().await?;
+    let nm = NetworkManagerProxy::new(&conn).await?;
+
+    let devices = nm.get_devices().await?;
+    let wifi_device = find_active_wifi_device(&conn, &devices).await
+        .ok_or_else(|| NetError::NotFound("active wifi connection".into()))?;
+
+    let dev = NMDeviceProxy::builder(&conn).path(wifi_device)?.build().await?;
+    let active = dev.active_connection().await?;
+    if active.as_str() == "/" {
+        return Err(NetError::NotFound("active wifi connection".into()));
+    }
+
+    nm.deactivate_connection(active).await?;
     Ok(())
 }
 
@@ -580,6 +604,23 @@ async fn find_active_ethernet_device(
         if active.as_str() != "/" {
             let name = dev.interface().await.ok()?;
             return Some((path.clone(), name));
+        }
+    }
+    None
+}
+
+async fn find_active_wifi_device(
+    conn: &Connection,
+    devices: &[OwnedObjectPath],
+) -> Option<OwnedObjectPath> {
+    for path in devices {
+        let dev = NMDeviceProxy::builder(conn).path(path.clone()).ok()?.build().await.ok()?;
+        if dev.device_type().await.ok()? != NM_DEVICE_TYPE_WIFI {
+            continue;
+        }
+        let active = dev.active_connection().await.ok()?;
+        if active.as_str() != "/" {
+            return Some(path.clone());
         }
     }
     None

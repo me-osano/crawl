@@ -7,7 +7,11 @@ use crate::{client::CrawlClient, output};
 pub struct ThemeArgs {
     /// Switch to a named predefined theme
     #[arg(long, value_name = "NAME")]
-    pub set: Option<String>,
+    pub set_custom: Option<String>,
+
+    /// Switch to dynamic theme with optional matugen scheme
+    #[arg(long, value_name = "SCHEME")]
+    pub set_dynamic: Option<String>,
 
     /// Set wallpaper and generate a dynamic palette via matugen
     #[arg(long, value_name = "PATH")]
@@ -29,9 +33,9 @@ pub struct ThemeArgs {
     #[arg(long)]
     pub regenerate: bool,
 
-    /// List all available themes (built-ins + user themes + assets)
-    #[arg(long)]
-    pub list: bool,
+    /// List available themes for a variant (dark/light)
+    #[arg(long, value_name = "VARIANT", num_args = 0..=1, default_missing_value = "current")]
+    pub list: Option<String>,
 
     /// Show current theme status
     #[arg(long)]
@@ -39,12 +43,28 @@ pub struct ThemeArgs {
 }
 
 pub async fn run(client: CrawlClient, args: ThemeArgs, json: bool) -> Result<()> {
-    if let Some(name) = args.set {
-        let res = client.post("/theme/set", json!({ "name": name })).await?;
+    let variant_override = if args.dark {
+        Some("dark")
+    } else if args.light {
+        Some("light")
+    } else {
+        None
+    };
+
+    if let Some(name) = args.set_custom {
+        let res = client.post("/theme/custom", json!({ "name": name, "variant": variant_override })).await?;
         if json {
             output::print_value(&res, true);
         } else {
             output::print_ok(&format!("Theme set to '{name}'"));
+            print_palette_preview(&res);
+        }
+    } else if let Some(scheme) = args.set_dynamic {
+        let res = client.post("/theme/dynamic", json!({ "scheme": scheme, "variant": variant_override })).await?;
+        if json {
+            output::print_value(&res, true);
+        } else {
+            output::print_ok("Dynamic theme updated");
             print_palette_preview(&res);
         }
     } else if let Some(path) = args.wallpaper {
@@ -69,8 +89,12 @@ pub async fn run(client: CrawlClient, args: ThemeArgs, json: bool) -> Result<()>
     } else if args.regenerate {
         let res = client.post("/theme/regenerate", json!({})).await?;
         if json { output::print_value(&res, true); } else { output::print_ok("Regenerating dynamic palette..."); }
-    } else if args.list {
-        let res = client.get("/theme/list").await?;
+    } else if let Some(variant) = args.list.as_deref() {
+        let res = if variant == "current" {
+            client.get("/theme/list").await?
+        } else {
+            client.get(&format!("/theme/list?variant={variant}")).await?
+        };
         if json {
             output::print_value(&res, true);
         } else if let Some(themes) = res["themes"].as_array() {

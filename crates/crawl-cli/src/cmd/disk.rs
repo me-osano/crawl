@@ -13,8 +13,13 @@ pub struct DiskArgs {
 
 pub async fn run(client: CrawlClient, args: DiskArgs, json: bool) -> Result<()> {
     if let Some(dev) = args.mount {
-        client.post("/disk/mount", json!({ "device": dev })).await?;
-        output::print_ok(&format!("Mounted {dev}"));
+        let res = client.post("/disk/mount", json!({ "device": dev })).await?;
+        if json {
+            output::print_value(&res, true);
+        } else {
+            let path = res["mount_path"].as_str().unwrap_or("?");
+            output::print_ok(&format!("Mounted at {path}"));
+        }
     } else if let Some(dev) = args.unmount {
         client.post("/disk/unmount", json!({ "device": dev })).await?;
         output::print_ok(&format!("Unmounted {dev}"));

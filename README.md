@@ -334,42 +334,153 @@ write_json = true
 - `docs/DEVELOPMENT.md` — build/run/debugging
 - `docs/CRAWL_THEME.md` — theming system
 
-## Roadmap
+# CLI Reference
 
-**0.1 — Foundation (current)**
-- [x] Workspace structure and crawl-ipc types
-- [x] axum daemon over Unix socket
-- [x] SSE broadcast event stream
-- [x] clap CLI skeleton with all domain subcommands
-- [x] All 11 domain crates scaffolded with real crate deps
+All commands accept `--json` / `-j` for raw JSON output (useful in scripts).
+All commands accept `--socket <path>` to override the daemon socket.
 
-**0.2 — Core domains working**
-- [ ] `crawl-sysmon` — CPU/mem/disk fully implemented
-- [ ] `crawl-brightness` — sysfs read/write working end-to-end
-- [ ] `crawl-power` — UPower battery reading working
-- [ ] `crawl-proc` — process list and kill working
-- [ ] HTTP router handlers wired to domain query functions
+---
 
-**0.3 — D-Bus domains**
-- [ ] `crawl-notify` — notification daemon fully working
-- [ ] `crawl-media` — MPRIS aggregator with track changes
-- [ ] `crawl-bluetooth` — scan, connect, disconnect working
-- [ ] `crawl-network` — NM status and WiFi list working
-- [ ] `crawl-audio` — sink volume and mute working
+## brightness
 
-**0.4 — Polish**
-- [ ] `crawl-disk` — mount/unmount working
-- [ ] `crawl-clipboard` — clipboard watch and history
-- [ ] `--watch` mode in CLI (streaming sysmon/events)
-- [ ] Shell completions (bash, zsh)
-- [ ] Man pages
+```bash
+crawl brightness                    # get current
+crawl brightness --set=80           # set to 80%
+crawl brightness --inc=5            # increase by 5%
+crawl brightness --dec=10           # decrease by 10%
+```
 
-**0.5 — CrawlDesktopShell integration**
-- [ ] Quickshell DataStream bridge
-- [ ] `org.freedesktop.ScreenSaver` inhibit implementation
-- [ ] Idle detection via `ext-idle-notify-v1`
-- [ ] Color temperature control
-- [ ] AUR package
+## sysmon
+
+```bash
+crawl sysmon --cpu                  # CPU usage + load averages
+crawl sysmon --mem                  # memory usage
+crawl sysmon --disk                 # disk usage per mount
+crawl sysmon --watch                # live CPU/memory updates (SSE)
+crawl sysmon --cpu --json           # raw JSON
+```
+
+## bluetooth
+
+```bash
+crawl bluetooth                            # status + device list
+crawl bluetooth --scan                     # start discovery
+crawl bluetooth --connect=AA:BB:CC:DD:EE:FF
+crawl bluetooth --disconnect=AA:BB:CC:DD:EE:FF
+crawl bluetooth --power=on
+crawl bluetooth --power=off
+```
+
+## network
+
+```bash
+crawl network                                # connectivity status
+crawl network --power=on                     # enable networking
+crawl network --power=off                    # disable networking
+
+crawl network --wifi --list                  # list nearby WiFi networks
+crawl network --wifi --scan                  # trigger WiFi scan
+crawl network --wifi --connect --ssid=MySSID --password=hunter2
+crawl network --wifi --disconnect
+
+crawl network --eth --list                   # list wired interfaces
+crawl network --eth --connect                # connect first wired interface
+crawl network --eth --connect --iface=enp3s0 # connect specific wired interface
+crawl network --eth --disconnect             # disconnect active wired interface
+crawl network --eth --disconnect --iface=enp3s0
+```
+
+## audio
+
+```bash
+crawl audio                              # list sinks with volume
+crawl audio --output --volume=70         # set output volume to 70%
+crawl audio --output --mute              # toggle output mute
+crawl audio --input --volume=70          # set input volume to 70%
+crawl audio --input --mute               # toggle input mute
+crawl audio --input --list               # list microphones / sources
+```
+
+## media
+
+```bash
+crawl media                         # active player + track info
+crawl media --play
+crawl media --pause
+crawl media --next
+crawl media --prev
+crawl media --volume=0.8            # 0.0–1.0
+crawl media --list                  # all MPRIS players
+crawl media --player=spotify --next # target specific player
+```
+
+## power
+
+```bash
+crawl power                         # battery percent, state, time estimates
+crawl power --json
+```
+
+## notify
+
+```bash
+crawl notify --list                 # all active notifications
+crawl notify --title="Build done" --body="cargo build succeeded"
+crawl notify --title="Alert" --body="Disk full" --urgency=critical
+crawl notify --dismiss=42           # dismiss notification by ID
+```
+
+## clip
+
+```bash
+crawl clip --get                    # current clipboard content
+crawl clip --set="some text"        # write to clipboard
+crawl clip --history                # clipboard history (JSON)
+```
+
+## proc
+
+```bash
+crawl proc                          # top 20 processes by CPU
+crawl proc --sort=mem --top=10      # top 10 by memory
+crawl proc --find=firefox           # find by name
+crawl proc --kill=1234              # SIGTERM
+crawl proc --kill=1234 --force      # SIGKILL
+crawl proc --watch=1234             # wait for PID to exit
+```
+
+## disk
+
+```bash
+crawl disk                          # list block devices
+crawl disk --mount=/dev/sdb1        # mount device
+crawl disk --unmount=/dev/sdb1
+crawl disk --eject=/dev/sdb         # eject drive
+```
+
+## daemon
+
+```bash
+crawl daemon                        # status + version
+crawl daemon --restart
+crawl daemon --stop
+```
+
+## theme
+
+```bash
+crawl theme --status
+crawl theme --list=dark
+crawl theme --list=light
+crawl theme --dark --set-custom=rose-pine
+crawl theme --light --set-custom=catppuccin-latte
+crawl theme --dark --set-dynamic=tonalspot
+crawl theme --wallpaper=~/Pictures/wall.jpg
+crawl theme --wallpaper=~/Pictures/wall.jpg --no-generate
+crawl theme --dark
+crawl theme --light
+crawl theme --regenerate
+```
 
 ---
 

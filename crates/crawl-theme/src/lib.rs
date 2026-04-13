@@ -31,6 +31,8 @@ pub struct Config {
     pub active: String,
     /// Dark or light variant
     pub variant: Variant,
+    /// matugen scheme for dynamic mode (e.g. tonalspot, vibrant, monochrome)
+    pub dynamic_scheme: Option<String>,
     /// Path to watch for wallpaper changes.
     /// crawl writes to this path when setting a wallpaper.
     /// Defaults to $XDG_CONFIG_HOME/crawl/current_wallpaper
@@ -62,6 +64,7 @@ impl Default for Config {
         Self {
             active:              "catppuccin-mocha".into(),
             variant:             Variant::Dark,
+            dynamic_scheme:      None,
             wallpaper_state_file: format!("{config_home}/crawl/current_wallpaper"),
             wallpaper_cmd:       "swww img {path}".into(),
             assets_dirs: vec![
@@ -165,7 +168,7 @@ async fn load_initial(cfg: &Config) -> Result<ThemeState, ThemeError> {
                 .map(|s| s.trim().to_string())
                 .unwrap_or_default();
             if !path.is_empty() {
-                let palette = matugen::generate(&path, cfg.variant).await?;
+                let palette = matugen::generate_with_scheme(&path, cfg.variant, cfg.dynamic_scheme.as_deref()).await?;
                 return Ok(ThemeState {
                     source:    ThemeSource::Dynamic { wallpaper: path.clone() },
                     variant:   cfg.variant,
@@ -226,7 +229,7 @@ async fn watch_wallpaper(
                 emit_theme(&tx, ThemeEvent::Generating { wallpaper: wallpaper.clone() });
 
                 // Run matugen
-                match matugen::generate(&wallpaper, cfg.variant).await {
+                match matugen::generate_with_scheme(&wallpaper, cfg.variant, cfg.dynamic_scheme.as_deref()).await {
                     Ok(palette) => {
                         let new_state = ThemeState {
                             source:    ThemeSource::Dynamic { wallpaper: wallpaper.clone() },
@@ -369,6 +372,18 @@ pub async fn set_theme(
     Ok(state)
 }
 
+/// Switch to a named predefined theme with an explicit variant.
+pub async fn set_theme_with_variant(
+    name: &str,
+    variant: Variant,
+    cfg: &Config,
+    tx: &broadcast::Sender<CrawlEvent>,
+) -> Result<ThemeState, ThemeError> {
+    let state = themes::load(name, variant, Some(cfg))?;
+    apply_and_broadcast(&state, cfg, tx).await;
+    Ok(state)
+}
+
 /// Set a wallpaper, run matugen, apply dynamic palette.
 pub async fn set_wallpaper(
     path: &str,
@@ -380,7 +395,7 @@ pub async fn set_wallpaper(
     emit_theme(tx, ThemeEvent::WallpaperChanged { path: path.to_string() });
     emit_theme(tx, ThemeEvent::Generating { wallpaper: path.to_string() });
 
-    let palette = matugen::generate(path, cfg.variant).await?;
+    let palette = matugen::generate_with_scheme(path, cfg.variant, cfg.dynamic_scheme.as_deref()).await?;
     let state = ThemeState {
         source:    ThemeSource::Dynamic { wallpaper: path.to_string() },
         variant:   cfg.variant,
@@ -417,9 +432,18 @@ pub async fn set_variant(
     tx: &broadcast::Sender<CrawlEvent>,
 ) -> Result<ThemeState, ThemeError> {
     let state = match &current.source {
-        ThemeSource::Predefined { name } => themes::load(name, variant, Some(cfg))?,
+        ThemeSource::Predefined { name } => {
+            match themes::load(name, variant, Some(cfg)) {
+                Ok(state) => state,
+                Err(ThemeError::NotFound(_)) => {
+                    let fallback = default_theme_for_variant(variant);
+                    themes::load(fallback, variant, Some(cfg))?
+                }
+                Err(err) => return Err(err),
+            }
+        }
         ThemeSource::Dynamic { wallpaper } => {
-            let palette = matugen::generate(wallpaper, variant).await?;
+            let palette = matugen::generate_with_scheme(wallpaper, variant, cfg.dynamic_scheme.as_deref()).await?;
             ThemeState {
                 source:    current.source.clone(),
                 variant,
@@ -431,4 +455,49 @@ pub async fn set_variant(
     emit_theme(tx, ThemeEvent::VariantChanged { variant });
     apply_and_broadcast(&state, cfg, tx).await;
     Ok(state)
+}
+
+fn default_theme_for_variant(variant: Variant) -> &'static str {
+    match variant {
+        Variant::Dark => "catppuccin-mocha",
+        Variant::Light => "catppuccin-latte",
+    }
+}
+
+/// Switch to dynamic theming with an optional scheme and explicit variant.
+pub async fn set_dynamic_with_scheme(
+    scheme: Option<&str>,
+    variant: Variant,
+    cfg: &Config,
+    tx: &broadcast::Sender<CrawlEvent>,
+) -> Result<ThemeState, ThemeError> {
+    let wallpaper = match current_wallpaper(cfg).await? {
+        Some(path) => path,
+        None => {
+            return Err(ThemeError::NotFound(
+                "dynamic theme requested but no wallpaper set".into(),
+            ))
+        }
+    };
+
+    let palette = matugen::generate_with_scheme(&wallpaper, variant, scheme).await?;
+    let state = ThemeState {
+        source:    ThemeSource::Dynamic { wallpaper: wallpaper.clone() },
+        variant,
+        palette,
+        wallpaper: Some(wallpaper),
+    };
+    apply_and_broadcast(&state, cfg, tx).await;
+    Ok(state)
+}
+
+async fn current_wallpaper(cfg: &Config) -> Result<Option<String>, ThemeError> {
+    let wallpaper_path = PathBuf::from(&cfg.wallpaper_state_file);
+    if !wallpaper_path.exists() {
+        return Ok(None);
+    }
+    let path = tokio::fs::read_to_string(&wallpaper_path).await
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+    if path.is_empty() { Ok(None) } else { Ok(Some(path)) }
 }

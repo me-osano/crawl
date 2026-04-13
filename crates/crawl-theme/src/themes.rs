@@ -41,62 +41,34 @@ pub fn load(name: &str, variant: Variant, cfg: Option<&Config>) -> Result<ThemeS
         return Ok(state);
     }
 
-    // 3. Try built-ins
-    let palette = builtin(name, variant).ok_or_else(|| {
-        ThemeError::NotFound(format!(
-            "theme '{name}' not found. \
-             Check ~/.config/crawl/themes/ or use one of: {}",
-            builtin_names().join(", ")
-        ))
-    })?;
-
-    palette.validate().map_err(ThemeError::InvalidPalette)?;
-
-    Ok(ThemeState {
-        source: ThemeSource::Predefined {
-            name: name.to_string(),
-        },
-        variant,
-        palette,
-        wallpaper: None,
-    })
+    let available = cfg
+        .map(|c| list_assets_by_variant(c, variant))
+        .unwrap_or_default();
+    Err(ThemeError::NotFound(format!(
+        "theme '{name}' not found for {variant} variant. Available: {}",
+        available.join(", ")
+    )))
 }
 
-fn try_load_user_theme(name: &str, variant: Variant) -> Option<ThemeState> {
-    let config_home = dirs::config_dir()?;
-    let path = config_home
-        .join("crawl")
-        .join("themes")
-        .join(format!("{name}.toml"));
-
-    if !path.exists() {
-        return None;
-    }
-
-    let content = std::fs::read_to_string(&path).ok()?;
-    let file: ThemeFile = toml::from_str(&content).ok()?;
-
-    file.palette.validate().ok()?;
-
-    Some(ThemeState {
-        source: ThemeSource::Predefined { name: file.name },
-        variant,
-        palette: file.palette,
-        wallpaper: None,
-    })
+fn try_load_user_theme(_name: &str, _variant: Variant) -> Option<ThemeState> {
+    None
 }
 
 fn try_load_assets_theme(name: &str, variant: Variant, cfg: Option<&Config>) -> Option<ThemeState> {
-    let dirs = cfg.map(|c| c.assets_dirs.as_slice()).unwrap_or(&[]);
+    let cfg = cfg?;
+    let dirs = asset_theme_dirs(cfg);
 
     for dir in dirs {
-        let path = PathBuf::from(dir).join(format!("{name}.toml"));
+        let path = PathBuf::from(&dir).join(format!("{name}.toml"));
         if !path.exists() {
             continue;
         }
 
         let content = std::fs::read_to_string(&path).ok()?;
         let file: ThemeFile = toml::from_str(&content).ok()?;
+        if !matches_variant(file._variant.as_deref(), variant) {
+            continue;
+        }
         file.palette.validate().ok()?;
 
         return Some(ThemeState {
@@ -110,45 +82,32 @@ fn try_load_assets_theme(name: &str, variant: Variant, cfg: Option<&Config>) -> 
     None
 }
 
-/// List all available theme names (built-ins + user themes).
-pub fn list_all() -> Vec<String> {
-    let mut names: Vec<String> = builtin_names().iter().map(|s| s.to_string()).collect();
+/// List all available theme names from assets/themes, filtered by variant.
+pub fn list_assets_by_variant(cfg: &Config, variant: Variant) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
 
-    // Add user themes
-    if let Some(config_home) = dirs::config_dir() {
-        let themes_dir = config_home.join("crawl").join("themes");
-        if let Ok(entries) = std::fs::read_dir(&themes_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.extension().and_then(|e| e.to_str()) == Some("toml") {
-                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                        if !names.contains(&stem.to_string()) {
-                            names.push(stem.to_string());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    names.sort();
-    names
-}
-
-/// List all available theme names (built-ins + user themes + assets).
-pub fn list_all_with_config(cfg: &Config) -> Vec<String> {
-    let mut names = list_all();
-
-    for dir in &cfg.assets_dirs {
-        let path = PathBuf::from(dir);
+    for dir in asset_theme_dirs(cfg) {
+        let path = PathBuf::from(&dir);
         if let Ok(entries) = std::fs::read_dir(&path) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().and_then(|e| e.to_str()) == Some("toml") {
-                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                        if !names.contains(&stem.to_string()) {
-                            names.push(stem.to_string());
-                        }
+                if path.extension().and_then(|e| e.to_str()) != Some("toml") {
+                    continue;
+                }
+                let content = match std::fs::read_to_string(&path) {
+                    Ok(c) => c,
+                    Err(_) => continue,
+                };
+                let file: ThemeFile = match toml::from_str(&content) {
+                    Ok(f) => f,
+                    Err(_) => continue,
+                };
+                if !matches_variant(file._variant.as_deref(), variant) {
+                    continue;
+                }
+                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                    if !names.contains(&stem.to_string()) {
+                        names.push(stem.to_string());
                     }
                 }
             }
@@ -159,6 +118,19 @@ pub fn list_all_with_config(cfg: &Config) -> Vec<String> {
     names
 }
 
+fn asset_theme_dirs(_cfg: &Config) -> Vec<String> {
+    vec!["assets/themes".to_string()]
+}
+
+fn matches_variant(file_variant: Option<&str>, variant: Variant) -> bool {
+    match file_variant {
+        Some(v) if v.eq_ignore_ascii_case("dark") => variant == Variant::Dark,
+        Some(v) if v.eq_ignore_ascii_case("light") => variant == Variant::Light,
+        _ => false,
+    }
+}
+
+#[allow(dead_code)]
 fn builtin_names() -> &'static [&'static str] {
     &[
         "catppuccin-mocha",
@@ -179,6 +151,7 @@ fn builtin_names() -> &'static [&'static str] {
     ]
 }
 
+#[allow(dead_code)]
 fn builtin(name: &str, _variant: Variant) -> Option<Palette> {
     match name {
         "catppuccin-mocha" => Some(catppuccin_mocha()),

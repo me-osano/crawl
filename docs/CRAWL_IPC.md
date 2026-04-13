@@ -49,7 +49,7 @@ All responses are JSON. Errors use the standard envelope:
 
 ```
 GET  /health
-→ { "status": "ok", "version": "0.1.3" }
+→ { "status": "ok", "version": "0.1.4" }
 ```
 
 ### Bluetooth
@@ -72,12 +72,14 @@ POST /bluetooth/pairable        ← { "on": true }
 ### Network
 
 ```
-GET  /network/status         → NetStatus (includes `mode`)
-GET  /network/wifi           → [WifiNetwork]
-POST /network/connect        ← { "ssid": "MyWifi", "password": "..." }
-POST /network/power          ← { "on": true }
-POST /network/eth/connect    ← { "interface": "enp3s0" }  # optional: auto-select if omitted
-POST /network/eth/disconnect ← { "interface": "enp3s0" }  # optional: auto-select active if omitted
+GET  /network/status              → NetStatus (includes `mode`)
+GET  /network/wifi                → [WifiNetwork]
+POST /network/wifi/scan           ← {}
+POST /network/wifi/connect        ← { "ssid": "MyWifi", "password": "..." }
+POST /network/wifi/disconnect     ← {}
+POST /network/power               ← { "on": true }
+POST /network/eth/connect         ← { "interface": "enp3s0" }  # optional: auto-select if omitted
+POST /network/eth/disconnect      ← { "interface": "enp3s0" }  # optional: auto-select active if omitted
 ```
 
 ### Notifications
@@ -118,6 +120,7 @@ POST /brightness/dec     ← { "value": 5 }
 ```
 GET  /proc/list          → [ProcessInfo]   (?sort=cpu&top=20)
 GET  /proc/find          → [ProcessInfo]   (?name=firefox)
+GET  /proc/watch/:pid    → { "pid": 1234, "name": "bash", "exit_code": null }
 POST /proc/:pid/kill     ← { "force": false }
 ```
 
@@ -153,8 +156,21 @@ POST /disk/eject         ← { "device": "..." }
 ```
 GET  /audio/sinks        → [AudioDevice]
 GET  /audio/sources      → [AudioDevice]
-POST /audio/volume       ← { "percent": 70 }
-POST /audio/mute         ← {}
+POST /audio/volume       ← { "percent": 70, "device": "input|output" }
+POST /audio/mute         ← { "device": "input|output" }
+```
+
+### Theme
+
+```
+GET  /theme/list                 → { "themes": ["..."] }
+GET  /theme/list?variant=dark    → { "themes": ["..."] }
+GET  /theme/list?variant=light   → { "themes": ["..."] }
+POST /theme/custom               ← { "name": "rose-pine", "variant": "dark" }
+POST /theme/dynamic              ← { "scheme": "tonalspot", "variant": "dark" }
+POST /theme/variant              ← { "variant": "dark" }
+POST /theme/wallpaper            ← { "path": "...", "no_generate": false }
+POST /theme/regenerate           ← {}
 ```
 
 ---

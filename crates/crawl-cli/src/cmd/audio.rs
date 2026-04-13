@@ -5,36 +5,42 @@ use crate::{client::CrawlClient, output};
 
 #[derive(Args)]
 pub struct AudioArgs {
-    /// Get default sink volume
     #[arg(long)]
-    pub get: bool,
+    pub input: bool,
+
+    #[arg(long)]
+    pub output: bool,
 
     /// Set volume percent (0–100)
     #[arg(long, value_name = "PERCENT")]
     pub volume: Option<u32>,
 
-    /// Toggle mute on default sink
+    /// Toggle mute on default device
     #[arg(long)]
     pub mute: bool,
 
-    /// List all sinks
+    /// List devices
     #[arg(long)]
-    pub sinks: bool,
-
-    /// List all sources (microphones)
-    #[arg(long)]
-    pub sources: bool,
+    pub list: bool,
 }
 
 pub async fn run(client: CrawlClient, args: AudioArgs, json: bool) -> Result<()> {
+    let device = if args.input {
+        Some("input")
+    } else if args.output {
+        Some("output")
+    } else {
+        None
+    };
+
     if let Some(vol) = args.volume {
-        let res = client.post("/audio/volume", json!({ "percent": vol })).await?;
+        let res = client.post("/audio/volume", json!({ "percent": vol, "device": device })).await?;
         if json { output::print_value(&res, true); } else { output::print_ok(&format!("Volume set to {vol}%")); }
     } else if args.mute {
-        let res = client.post("/audio/mute", json!({})).await?;
+        let res = client.post("/audio/mute", json!({ "device": device })).await?;
         if json { output::print_value(&res, true); } else { output::print_ok("Mute toggled"); }
-    } else if args.sources {
-        let res = client.get("/audio/sources").await?;
+    } else if args.list {
+        let res = if args.input { client.get("/audio/sources").await? } else { client.get("/audio/sinks").await? };
         output::print_value(&res, json);
     } else {
         let res = client.get("/audio/sinks").await?;

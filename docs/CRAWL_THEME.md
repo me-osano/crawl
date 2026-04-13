@@ -1,6 +1,6 @@
 # crawl-theme
 
-Theme management for the crawl ecosystem — predefined palettes and
+Theme management for the crawl ecosystem — predefined palettes from assets and
 matugen wallpaper-driven dynamic theming, delivered to GTK, Ghostty,
 and Quickshell over a single SSE event stream.
 
@@ -9,10 +9,13 @@ and Quickshell over a single SSE event stream.
 ## Overview
 
 ```
-crawl theme --set=rose-pine           # switch predefined theme
+crawl theme --dark --set-custom=rose-pine
+crawl theme --light --set-custom=catppuccin-latte
+crawl theme --dark --set-dynamic=tonalspot
 crawl theme --wallpaper=~/wall.jpg    # set wallpaper + generate palette via matugen
 crawl theme --dark / --light          # toggle variant
-crawl theme --list                    # see all available themes
+crawl theme --list=dark               # list dark themes
+crawl theme --list=light              # list light themes
 crawl theme                           # show current palette + status
 ```
 
@@ -30,7 +33,7 @@ stream that Quickshell reacts to instantly with no restart required.
                 │          crawl-theme             │
                 │                                  │
   predefined ───┤  themes.rs                       │
-  TOML files    │  (15 built-ins + user ~/.config) │
+  TOML files    │  (assets/themes only)            │
                 │                                  │
   wallpaper ────┤  matugen.rs                      │──► Palette struct
   inotify watch │  (subprocess + Material You map) │
@@ -70,7 +73,7 @@ stream that Quickshell reacts to instantly with no restart required.
 |---|---|
 | `src/lib.rs` | Domain entry point, `Config`, error type, `ThemeEvent` enum, domain runner, public API |
 | `src/palette.rs` | `Palette` struct (18 roles), `Variant`, `ThemeSource`, `ThemeState`, validation |
-| `src/themes.rs` | Predefined palette registry — 15 built-ins + user TOML loader |
+| `src/themes.rs` | Predefined palette registry — assets/themes loader with variant filtering |
 | `src/matugen.rs` | matugen subprocess runner + Material You → semantic palette mapping |
 | `src/writers/gtk.rs` | GTK3 + GTK4 CSS custom property writer |
 | `src/writers/ghostty.rs` | Ghostty theme file writer (16-color ANSI + cursor/selection) |
@@ -121,7 +124,7 @@ stream that Quickshell reacts to instantly with no restart required.
 
 ## Custom themes
 
-Drop a `.toml` file in `~/.config/crawl/themes/`:
+Custom themes are only loaded from `assets/themes/*.toml`.
 
 ```toml
 # ~/.config/crawl/themes/my-theme.toml
@@ -149,7 +152,7 @@ overlay1  = "#505878"
 overlay2  = "#606890"
 ```
 
-Then: `crawl theme --set=my-theme`
+Then: `crawl theme --dark --set-custom=my-theme`
 
 ---
 
@@ -172,6 +175,7 @@ cargo install matugen
 [theme]
 active      = "dynamic"
 variant     = "dark"
+dynamic_scheme = "tonalspot"   # optional: tonalspot, vibrant, monochrome, etc.
 wallpaper_cmd = "swww img {path} --transition-type fade --transition-duration 0.8"
 ```
 
@@ -184,10 +188,16 @@ crawl theme --wallpaper=~/Pictures/forest.jpg
 crawl will:
 1. Set the wallpaper via `swww` (or your configured command)
 2. Write the path to `~/.config/crawl/current_wallpaper`
-3. Run `matugen image <path> --json hex`
+3. Run `matugen image <path> --json hex [--scheme <scheme>]`
 4. Map Material You color roles → semantic Palette
 5. Write GTK CSS, Ghostty theme, shell vars, JSON
 6. Fire `PaletteChanged` — Quickshell updates instantly
+
+### Variant fallback
+
+When switching variants with `crawl theme --dark` or `crawl theme --light`,
+if the current custom theme doesn't exist in that variant, crawl falls back
+to the default variant theme (`catppuccin-mocha` for dark, `catppuccin-latte` for light).
 
 ### Material You role mapping
 
