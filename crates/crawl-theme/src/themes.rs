@@ -118,8 +118,12 @@ pub fn list_assets_by_variant(cfg: &Config, variant: Variant) -> Vec<String> {
     names
 }
 
-fn asset_theme_dirs(_cfg: &Config) -> Vec<String> {
-    vec!["assets/themes".to_string()]
+fn asset_theme_dirs(cfg: &Config) -> Vec<String> {
+    if cfg.assets_dirs.is_empty() {
+        vec!["assets/themes".to_string()]
+    } else {
+        cfg.assets_dirs.clone()
+    }
 }
 
 fn matches_variant(file_variant: Option<&str>, variant: Variant) -> bool {
