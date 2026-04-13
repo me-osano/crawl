@@ -11,6 +11,7 @@ pub struct AppState {
     pub config: Arc<Config>,
     pub event_tx: broadcast::Sender<CrawlEvent>,
     pub theme_state: Arc<Mutex<ThemeState>>,
+    pub notify_store: Arc<crawl_notify::NotifyStore>,
 }
 
 impl AppState {
@@ -18,11 +19,13 @@ impl AppState {
         config: Config,
         event_tx: broadcast::Sender<CrawlEvent>,
         theme_state: ThemeState,
+        notify_store: Arc<crawl_notify::NotifyStore>,
     ) -> Self {
         Self {
             config: Arc::new(config),
             event_tx,
             theme_state: Arc::new(Mutex::new(theme_state)),
+            notify_store,
         }
     }
 }

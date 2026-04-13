@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::StatusCode,
     response::{IntoResponse, Json, Response},
     routing::{delete, get, post},
@@ -11,10 +11,12 @@ use crawl_ipc::{
     ErrorEnvelope,
     CrawlEvent,
     events::BrightnessEvent,
+    types::Notification,
 };
 use crate::{sse, state::AppState};
 use crawl_ipc::events::ThemeEvent;
 use crawl_theme::{ThemeState, Variant, ThemeSource};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn build(state: AppState) -> Router {
     Router::new()
@@ -31,11 +33,20 @@ pub fn build(state: AppState) -> Router {
         .route("/bluetooth/connect",    post(bt_connect))
         .route("/bluetooth/disconnect", post(bt_disconnect))
         .route("/bluetooth/power",      post(bt_power))
+        .route("/bluetooth/pair",       post(bt_pair))
+        .route("/bluetooth/trust",      post(bt_trust))
+        .route("/bluetooth/remove",     post(bt_remove))
+        .route("/bluetooth/alias",      post(bt_alias))
+        .route("/bluetooth/discoverable", post(bt_discoverable))
+        .route("/bluetooth/pairable",   post(bt_pairable))
 
         // ── Network ──────────────────────────────────────────────────────────
         .route("/network/status",    get(net_status))
         .route("/network/wifi",      get(net_wifi_list))
         .route("/network/connect",   post(net_connect))
+        .route("/network/power",     post(net_power))
+        .route("/network/eth/connect",   post(net_eth_connect))
+        .route("/network/eth/disconnect",post(net_eth_disconnect))
 
         // ── Notifications ────────────────────────────────────────────────────
         .route("/notify/list",   get(notify_list))
@@ -115,6 +126,13 @@ fn not_implemented(domain: &str) -> ApiError {
     )
 }
 
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
 fn brightness_error(err: crawl_brightness::BrightnessError) -> ApiError {
     match err {
         crawl_brightness::BrightnessError::NoDevice => ApiError(
@@ -136,6 +154,40 @@ fn brightness_error(err: crawl_brightness::BrightnessError) -> ApiError {
     }
 }
 
+fn bluetooth_error(err: crawl_bluetooth::BtError) -> ApiError {
+    match err {
+        crawl_bluetooth::BtError::NoAdapter => ApiError(
+            StatusCode::NOT_FOUND,
+            ErrorEnvelope::new("bluetooth", "no_adapter", "no bluetooth adapter found"),
+        ),
+        crawl_bluetooth::BtError::DeviceNotFound(addr) => ApiError(
+            StatusCode::NOT_FOUND,
+            ErrorEnvelope::new("bluetooth", "device_not_found", format!("device not found: {addr}")),
+        ),
+        crawl_bluetooth::BtError::Session(err) => ApiError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorEnvelope::new("bluetooth", "session_error", err.to_string()),
+        ),
+    }
+}
+
+fn proc_error(err: crawl_proc::ProcError, pid: u32) -> ApiError {
+    match err {
+        crawl_proc::ProcError::NotFound(_) => ApiError(
+            StatusCode::NOT_FOUND,
+            ErrorEnvelope::new("proc", "not_found", format!("process not found: PID {pid}")),
+        ),
+        crawl_proc::ProcError::PermissionDenied(_) => ApiError(
+            StatusCode::FORBIDDEN,
+            ErrorEnvelope::new("proc", "permission_denied", format!("permission denied killing PID {pid}")),
+        ),
+        crawl_proc::ProcError::SignalFailed(msg) => ApiError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ErrorEnvelope::new("proc", "signal_failed", msg),
+        ),
+    }
+}
+
 // ── Health ───────────────────────────────────────────────────────────────────
 
 async fn health() -> Json<Value> {
@@ -145,47 +197,248 @@ async fn health() -> Json<Value> {
 // ── Bluetooth handlers (stubs) ────────────────────────────────────────────────
 
 async fn bt_status(State(_s): State<AppState>) -> impl IntoResponse {
-    // TODO: return crawl_bluetooth::get_status().await
-    not_implemented("bluetooth")
+    match crawl_bluetooth::get_status().await {
+        Ok(status) => Json(status).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
 }
 async fn bt_devices(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("bluetooth")
+    match crawl_bluetooth::get_devices().await {
+        Ok(devices) => Json(devices).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
 }
 async fn bt_scan(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("bluetooth")
+    match crawl_bluetooth::scan().await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
 }
-async fn bt_connect(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("bluetooth")
+async fn bt_connect(
+    State(_s): State<AppState>,
+    Json(body): Json<BtAddressBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::connect(&body.address).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
 }
-async fn bt_disconnect(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("bluetooth")
+async fn bt_disconnect(
+    State(_s): State<AppState>,
+    Json(body): Json<BtAddressBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::disconnect(&body.address).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
 }
-async fn bt_power(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("bluetooth")
+async fn bt_power(
+    State(_s): State<AppState>,
+    Json(body): Json<BtPowerBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::set_powered(body.on).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct BtTrustBody {
+    address: String,
+    trusted: bool,
+}
+
+#[derive(Deserialize)]
+struct BtAliasBody {
+    address: String,
+    alias: String,
+}
+
+#[derive(Deserialize)]
+struct BtToggleBody {
+    on: bool,
+}
+
+async fn bt_pair(
+    State(_s): State<AppState>,
+    Json(body): Json<BtAddressBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::pair(&body.address).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
+}
+
+async fn bt_trust(
+    State(_s): State<AppState>,
+    Json(body): Json<BtTrustBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::set_trusted(&body.address, body.trusted).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
+}
+
+async fn bt_remove(
+    State(_s): State<AppState>,
+    Json(body): Json<BtAddressBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::remove_device(&body.address).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
+}
+
+async fn bt_alias(
+    State(_s): State<AppState>,
+    Json(body): Json<BtAliasBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::set_alias(&body.address, &body.alias).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
+}
+
+async fn bt_discoverable(
+    State(_s): State<AppState>,
+    Json(body): Json<BtToggleBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::set_discoverable(body.on).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
+}
+
+async fn bt_pairable(
+    State(_s): State<AppState>,
+    Json(body): Json<BtToggleBody>,
+) -> impl IntoResponse {
+    match crawl_bluetooth::set_pairable(body.on).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => bluetooth_error(err).into_response(),
+    }
 }
 
 // ── Network handlers (stubs) ──────────────────────────────────────────────────
 
 async fn net_status(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("network")
+    match crawl_network::get_status().await {
+        Ok(status) => Json(status).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("network", "network_error", err.to_string()),
+        )
+        .into_response(),
+    }
+    // TODO(crawl-network): Map NetError variants to precise HTTP status codes.
 }
 async fn net_wifi_list(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("network")
+    match crawl_network::list_wifi().await {
+        Ok(list) => Json(list).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("network", "network_error", err.to_string()),
+        )
+        .into_response(),
+    }
+    // TODO(crawl-network): Consider returning 503 when NetworkManager is unavailable.
 }
-async fn net_connect(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("network")
+async fn net_connect(
+    State(_s): State<AppState>,
+    Json(payload): Json<NetConnectBody>,
+) -> impl IntoResponse {
+    match crawl_network::connect_wifi(&payload.ssid, payload.password.as_deref()).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("network", "network_error", err.to_string()),
+        )
+        .into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct NetPowerBody {
+    on: bool,
+}
+
+async fn net_power(
+    State(_s): State<AppState>,
+    Json(payload): Json<NetPowerBody>,
+) -> impl IntoResponse {
+    match crawl_network::set_network_enabled(payload.on).await {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("network", "network_error", err.to_string()),
+        )
+        .into_response(),
+    }
+}
+
+async fn net_eth_connect(
+    State(_s): State<AppState>,
+    Json(payload): Json<NetEthBody>,
+) -> impl IntoResponse {
+    match crawl_network::connect_ethernet(payload.interface.as_deref()).await {
+        Ok(iface) => Json(json!({ "ok": true, "interface": iface })).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("network", "network_error", err.to_string()),
+        )
+        .into_response(),
+    }
+}
+
+async fn net_eth_disconnect(
+    State(_s): State<AppState>,
+    Json(payload): Json<NetEthBody>,
+) -> impl IntoResponse {
+    match crawl_network::disconnect_ethernet(payload.interface.as_deref()).await {
+        Ok(iface) => Json(json!({ "ok": true, "interface": iface })).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("network", "network_error", err.to_string()),
+        )
+        .into_response(),
+    }
 }
 
 // ── Notification handlers (stubs) ────────────────────────────────────────────
 
-async fn notify_list(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("notify")
+async fn notify_list(State(state): State<AppState>) -> impl IntoResponse {
+    let list: Vec<Notification> = state.notify_store.list();
+    Json(list).into_response()
 }
-async fn notify_send(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("notify")
+async fn notify_send(State(state): State<AppState>, Json(body): Json<NotifySendBody>) -> impl IntoResponse {
+    let notif = Notification {
+        id: 0,
+        app_name: "crawl".into(),
+        summary: body.title,
+        body: body.body,
+        icon: String::new(),
+        urgency: body.urgency.unwrap_or(crawl_ipc::types::Urgency::Normal),
+        actions: vec![],
+        expire_timeout_ms: body.timeout_ms.unwrap_or(state.config.notifications.default_timeout_ms),
+        timestamp_ms: now_ms(),
+    };
+    let id = state.notify_store.insert(notif.clone());
+    let _ = state.event_tx.send(CrawlEvent::Notify(crawl_ipc::events::NotifyEvent::New {
+        notification: Notification { id, ..notif },
+    }));
+    Json(json!({ "id": id })).into_response()
 }
-async fn notify_dismiss(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("notify")
+async fn notify_dismiss(
+    State(state): State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<u32>,
+) -> impl IntoResponse {
+    if state.notify_store.remove(id).is_some() {
+        let _ = state.event_tx.send(CrawlEvent::Notify(crawl_ipc::events::NotifyEvent::Closed {
+            id,
+            reason: 3,
+        }));
+    }
+    Json(json!({ "ok": true })).into_response()
 }
 
 // ── Clipboard handlers (stubs) ───────────────────────────────────────────────
@@ -274,16 +527,57 @@ struct BrightnessValue {
     value: f32,
 }
 
-// ── Process handlers (stubs) ──────────────────────────────────────────────────
+#[derive(Deserialize)]
+struct BtAddressBody {
+    address: String,
+}
 
-async fn proc_list(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("proc")
+#[derive(Deserialize)]
+struct BtPowerBody {
+    on: bool,
 }
-async fn proc_find(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("proc")
+
+#[derive(Deserialize)]
+struct NotifySendBody {
+    title: String,
+    body: String,
+    urgency: Option<crawl_ipc::types::Urgency>,
+    timeout_ms: Option<i32>,
 }
-async fn proc_kill(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("proc")
+
+// ── Process handlers ──────────────────────────────────────────────────────────
+async fn proc_list(
+    State(state): State<AppState>,
+    Query(params): Query<ProcListParams>,
+) -> impl IntoResponse {
+    let sort = params
+        .sort
+        .as_deref()
+        .unwrap_or(&state.config.processes.default_sort);
+    let top = params.top.unwrap_or(state.config.processes.default_top);
+    Json(crawl_proc::list_processes(sort, top))
+}
+
+async fn proc_find(Query(params): Query<ProcFindParams>) -> impl IntoResponse {
+    let name = params.name.unwrap_or_default();
+    if name.is_empty() {
+        return ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("proc", "missing_name", "query param 'name' is required"),
+        )
+        .into_response();
+    }
+    Json(crawl_proc::find_processes(&name)).into_response()
+}
+async fn proc_kill(
+    State(_s): State<AppState>,
+    axum::extract::Path(pid): axum::extract::Path<u32>,
+    Json(payload): Json<ProcKillBody>,
+) -> impl IntoResponse {
+    match crawl_proc::kill_process(pid, payload.force) {
+        Ok(()) => Json(json!({ "ok": true })).into_response(),
+        Err(err) => proc_error(err, pid).into_response(),
+    }
 }
 
 // ── Media handlers (stubs) ────────────────────────────────────────────────────
@@ -313,7 +607,41 @@ async fn media_volume(State(_s): State<AppState>) -> impl IntoResponse {
 // ── Power handlers (stubs) ────────────────────────────────────────────────────
 
 async fn power_battery(State(_s): State<AppState>) -> impl IntoResponse {
-    not_implemented("power")
+    match crawl_power::get_battery().await {
+        Ok(status) => Json(status).into_response(),
+        Err(err) => ApiError(
+            StatusCode::BAD_REQUEST,
+            ErrorEnvelope::new("power", "power_error", err.to_string()),
+        )
+        .into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct ProcListParams {
+    sort: Option<String>,
+    top: Option<usize>,
+}
+
+#[derive(Deserialize)]
+struct ProcFindParams {
+    name: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ProcKillBody {
+    force: bool,
+}
+
+#[derive(Deserialize)]
+struct NetConnectBody {
+    ssid: String,
+    password: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct NetEthBody {
+    interface: Option<String>,
 }
 
 // ── Disk handlers (stubs) ─────────────────────────────────────────────────────

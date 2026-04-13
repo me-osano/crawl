@@ -57,6 +57,7 @@ pub enum NetEvent {
     IpChanged { iface: String, ip: String },
     WifiEnabled,
     WifiDisabled,
+    ModeChanged { mode: NetMode },
     ConnectivityChanged { state: String },
 }
 

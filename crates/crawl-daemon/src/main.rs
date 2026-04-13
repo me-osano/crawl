@@ -36,7 +36,8 @@ async fn main() -> anyhow::Result<()> {
 
     // ── Spawn domain tasks ───────────────────────────────────────────────────
     let theme_state = crawl_theme::initial_state(&cfg.theme).await;
-    let state = AppState::new(cfg.clone(), event_tx.clone(), theme_state);
+    let notify_store = std::sync::Arc::new(crawl_notify::NotifyStore::new(cfg.notifications.max_store));
+    let state = AppState::new(cfg.clone(), event_tx.clone(), theme_state, notify_store);
 
     spawn_domains(&state).await;
 
@@ -96,7 +97,15 @@ async fn spawn_domains(state: &AppState) {
 
     spawn_domain!("bluetooth",         bluetooth,         crawl_bluetooth,         cfg.bluetooth);
     spawn_domain!("network",        network,        crawl_network,        cfg.network);
-    spawn_domain!("notify",     notify,     crawl_notify,     cfg.notifications);
+    // TODO(crawl-network): Emit startup status events after domain spawn.
+    let notify_store = state.notify_store.clone();
+    let notify_cfg = cfg.notifications.clone();
+    let notify_tx = tx.clone();
+    tokio::spawn(async move {
+        if let Err(e) = crawl_notify::run_with_store(notify_cfg, notify_tx, (*notify_store).clone()).await {
+            error!(domain = "notify", "domain task failed: {e:#}");
+        }
+    });
     spawn_domain!("clipboard",  clipboard,  crawl_clipboard,  cfg.clipboard);
     spawn_domain!("sysmon",     sysmon,     crawl_sysmon,     cfg.sysmon);
     spawn_domain!("brightness", brightness, crawl_brightness, cfg.brightness);

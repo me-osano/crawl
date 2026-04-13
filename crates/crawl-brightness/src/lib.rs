@@ -75,8 +75,8 @@ impl Backlight {
     }
 
     pub fn current_brightness(&self) -> Result<u64, BrightnessError> {
-        read_u64(self.path.join("actual_brightness"))
-            .or_else(|_| read_u64(self.path.join("brightness")))
+        read_u64(self.path.join("brightness"))
+            .or_else(|_| read_u64(self.path.join("actual_brightness")))
     }
 
     pub fn set_brightness(&self, raw: u64) -> Result<(), BrightnessError> {
@@ -87,6 +87,7 @@ impl Backlight {
     pub fn status(&self) -> Result<BrightnessStatus, BrightnessError> {
         let max     = self.max_brightness()?;
         let current = self.current_brightness()?;
+        let current = current.min(max);
         let percent = if max > 0 { current as f32 / max as f32 * 100.0 } else { 0.0 };
         Ok(BrightnessStatus { device: self.device.clone(), current, max, percent })
     }

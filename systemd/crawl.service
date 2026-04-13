@@ -9,7 +9,7 @@ PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/crawl-daemon
+ExecStart=/usr/bin/crawl-daemon
 Restart=on-failure
 RestartSec=3s
 

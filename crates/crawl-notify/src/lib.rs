@@ -219,9 +219,16 @@ impl NotificationServer {
 // ── Domain runner ─────────────────────────────────────────────────────────────
 
 pub async fn run(cfg: Config, tx: broadcast::Sender<CrawlEvent>) -> anyhow::Result<()> {
-    info!("crawl-notify starting (replace_daemon={})", cfg.replace_daemon);
-
     let store = NotifyStore::new(cfg.max_store);
+    run_with_store(cfg, tx, store).await
+}
+
+pub async fn run_with_store(
+    cfg: Config,
+    tx: broadcast::Sender<CrawlEvent>,
+    store: NotifyStore,
+) -> anyhow::Result<()> {
+    info!("crawl-notify starting (replace_daemon={})", cfg.replace_daemon);
 
     let server = NotificationServer {
         store: store.clone(),

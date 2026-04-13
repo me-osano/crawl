@@ -39,10 +39,20 @@ pub struct WifiNetwork {
     pub connected: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum NetMode {
+    Station,
+    Ap,
+    Unknown,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetStatus {
     pub connectivity: String,
     pub wifi_enabled: bool,
+    pub network_enabled: bool,
+    pub mode: NetMode,
     pub active_ssid: Option<String>,
     pub interfaces: Vec<NetInterface>,
 }
