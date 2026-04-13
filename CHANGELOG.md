@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.1.4] - 2026-04-13
+
+### Added
+- Audio domain implementation with sink/source listing, volume, and mute controls.
+- Network CLI actions for WiFi scan/connect/disconnect and Ethernet connect/disconnect.
+- Proc watch support to wait for a PID to exit.
+- Theme CLI support for variant-aware listing, custom themes, and dynamic schemes.
+
+### Changed
+- Theme listing now filters by variant and assets/themes only, with variant fallback defaults.
+- Disk endpoints now wired to real UDisks2 operations.
+
+### Documentation
+- Updated CLI, IPC, and theme docs to match new endpoints and flags.
+
 ## [0.1.3] - 2026-04-13
 
 ### Added
