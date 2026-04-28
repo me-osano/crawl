@@ -1,0 +1,46 @@
+# crawl configuration file
+# Location: $XDG_CONFIG_HOME/crawl/config.toml  (default: ~/.config/crawl/config.toml)
+# 
+
+# === Bluetooth ===
+[bluetooth]
+auto_enable = false         # power adapter on at daemon start
+scan_timeout_sec = 30       # 0 = no timeout
+
+# === Display ===
+[display]
+wallpaper = ""
+wallpaper_transition = "fade"
+wallpaper_transition_fps = 30
+wallpaper_transition_duration_ms = 500
+brightness_min = 1.0
+brightness_max = 100.0
+
+# === Network ===
+[network]
+auto_enable = false
+wifi_scan_on_start = false
+wifi_scan_finish_delay_ms = 30000  # ms to wait after scan before reading results
+hotspot_backend = "networkmanager"    # networkmanager | hostapd
+hotspot_virtual_iface = true
+
+# === Processes ===
+[processes]
+sort_by = "cpu"            # cpu | mem | pid | name
+top = 20                # number of processes returned by default
+
+# === System Monitor ===
+[sysmon]
+poll_interval_ms = 1000          # update interval
+cpu_spike_threshold = 90.0       # percent — emits CpuSpike event
+mem_pressure_threshold = 85.0    # percent — emits MemPressure event
+
+# === Theme ===
+[theme]
+source = "generic"              # "generic" or "dynamic"
+name = "Nord"                   # "ThemeName" for generic or "WallpaperName" for dynamic
+scheme = "static"               # "static" for generic or "tonal-spot" etc for dynamic
+mode = "dark"                   # "dark" or "light"
+default_scheme = "tonal-spot"   # vibrant, tonal-spot, excited, rainbow
+default_mode = "dark"           # dark, light
+cacheDir = ""

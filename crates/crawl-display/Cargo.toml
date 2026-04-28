@@ -1,0 +1,46 @@
+[package]
+name = "crawl-display"
+description = "Display control: brightness via sysfs backlight, wallpaper via crawlbg"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+crawl-ipc  = { workspace = true }
+tokio      = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+tracing    = { workspace = true }
+anyhow     = { workspace = true }
+image      = { workspace = true }
+which      = "6"
+home       = "0.5"
+
+# Wayland backend
+smithay-client-toolkit    = { version = "0.19", default-features = false, features = [
+    "calloop",
+] }
+wayland-client            = "0.31"
+wayland-protocols         = { version = "0.32", features = ["client", "unstable"] }
+wayland-protocols-wlr     = { version = "0.3", features = ["client"] }
+calloop                   = { version = "0.13", features = ["executor"] }
+calloop-wayland-source    = "0.3"
+
+# Shared memory
+memmap2                   = "0.9"
+
+# Random for transitions
+rand = "0.8"
+
+# SIMD acceleration for pixel blending
+wide = "1"
+
+# High-quality image resizing
+fast_image_resize = "4"
+
+# LRU cache eviction
+lru = "0.12"
+
+tempfile = "3"

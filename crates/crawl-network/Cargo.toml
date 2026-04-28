@@ -1,0 +1,18 @@
+[package]
+name = "crawl-network"
+description = "Network management via NetworkManager D-Bus"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+crawl-ipc       = { workspace = true }
+crawl-scheduler = { path = "../crawl-scheduler" }
+tokio           = { workspace = true }
+serde        = { workspace = true }
+thiserror    = { workspace = true }
+tracing      = { workspace = true }
+zbus         = { workspace = true }
+futures-util = { workspace = true }
+anyhow       = { workspace = true }

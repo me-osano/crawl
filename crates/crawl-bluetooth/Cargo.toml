@@ -1,0 +1,19 @@
+[package]
+name = "crawl-bluetooth"
+description = "Bluetooth management via BlueZ D-Bus (bluer)"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+crawl-ipc     = { workspace = true }
+tokio         = { workspace = true }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+thiserror     = { workspace = true }
+tracing       = { workspace = true }
+futures       = { workspace = true }
+futures-util  = { workspace = true }
+bluer         = { version = "0.17", features = ["full"] }
+anyhow        = { workspace = true }

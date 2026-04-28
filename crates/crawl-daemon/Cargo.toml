@@ -1,0 +1,31 @@
+[package]
+name = "crawl-daemon"
+description = "crawl system daemon — JSON over Unix socket"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "crawl-daemon"
+path = "src/main.rs"
+
+[dependencies]
+crawl-ipc       = { workspace = true }
+crawl-sysmon    = { path = "../crawl-sysmon" }
+crawl-proc      = { path = "../crawl-proc" }
+crawl-sysinfo   = { path = "../crawl-sysinfo" }
+crawl-audio     = { path = "../crawl-audio" }
+crawl-bluetooth = { path = "../crawl-bluetooth" }
+crawl-network   = { path = "../crawl-network" }
+crawl-display   = { path = "../crawl-display" }
+
+tokio           = { workspace = true }
+serde           = { workspace = true }
+serde_json      = { workspace = true }
+anyhow          = { workspace = true }
+tracing         = { workspace = true }
+tracing-subscriber = { workspace = true }
+figment         = { workspace = true }
+libc            = { workspace = true }
+async-trait     = "0.1"

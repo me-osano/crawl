@@ -1,0 +1,16 @@
+[package]
+name = "crawl-audio"
+description = "Audio control via PipeWire/PulseAudio (libpulse-binding)"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+crawl-ipc        = { workspace = true }
+tokio            = { workspace = true }
+serde            = { workspace = true }
+thiserror        = { workspace = true }
+tracing          = { workspace = true }
+libpulse-binding = "2"
+anyhow           = { workspace = true }

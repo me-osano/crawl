@@ -1,0 +1,15 @@
+[package]
+name = "crawl-ipc"
+description = "Shared IPC types, error envelope, and event models for crawl"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde        = { workspace = true }
+serde_json   = { workspace = true }
+thiserror    = { workspace = true }
+tokio        = { workspace = true, features = ["full"] }
+anyhow       = { workspace = true }
+tracing      = { workspace = true }

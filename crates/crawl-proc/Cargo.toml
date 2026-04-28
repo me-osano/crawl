@@ -1,0 +1,17 @@
+[package]
+name = "crawl-proc"
+description = "Process listing and management via sysinfo"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+crawl-ipc  = { workspace = true }
+tokio      = { workspace = true }
+serde      = { workspace = true }
+thiserror  = { workspace = true }
+tracing    = { workspace = true }
+sysinfo    = { version = "0.31" }
+anyhow     = { workspace = true }
+once_cell = "1"

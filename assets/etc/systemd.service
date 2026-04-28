@@ -1,0 +1,27 @@
+[Unit]
+Description=Crawl System Daemon
+Documentation=https://github.com/me-osano/crawl
+After=dbus.socket graphical-session.target
+Wants=dbus.socket
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/crawl-daemon
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+
+Environment=CRAWL_LOG=info
+EnvironmentFile=/etc/crawl/environment
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crawl
+
+User=crawl
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=graphical-session.target

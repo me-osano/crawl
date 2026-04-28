@@ -1,0 +1,21 @@
+[package]
+name = "crawl-scheduler"
+description = "Central scheduler with jitter for Crawl domains"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+fastrand = "2"
+
+[features]
+default = []
+sync = []
+
+[dev-dependencies]
+tokio = { workspace = true }
+
+[lib]
+path = "src/lib.rs"
