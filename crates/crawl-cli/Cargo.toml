@@ -21,10 +21,5 @@ tracing    = { workspace = true }
 tracing-subscriber = { workspace = true }
 owo-colors  = { workspace = true }
 once_cell = "1"
-
-
-[dependencies.term_size]
-version = "0.3"
-
-[dependencies.comfy-table]
-version = "7"
+term_size = "0.3"
+comfy-table = "7"
